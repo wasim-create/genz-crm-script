@@ -804,6 +804,9 @@ if (targetStageId === 'In Progress' && oldStatus === 'Uncontacted') {
         }
 
         if (targetStageId === 'Handed Off' && oldStatus !== 'Handed Off' && !oldStatus.includes('Handoff')) {
+            if (oldStatus === 'Uncontacted') {
+                return showToast("Cannot hand off an Uncontacted account. Please log a sales stop first.", "error");
+            }
             activeDealershipId = draggedDeal.id;
             initiateHandoff();
             return; 
@@ -1046,7 +1049,10 @@ if (targetStageId === 'In Progress' && oldStatus === 'Uncontacted') {
                 }
                 
                 actionsContainer.innerHTML += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
-                actionsContainer.innerHTML += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
+                
+                if (d.status === 'In Progress') {
+                    actionsContainer.innerHTML += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
+                }
                 
                 if (displayStatus === 'Parked' || displayStatus === 'Auto-Parked') {
                     actionsContainer.innerHTML += `<button type="button" onclick="toggleParkDealership('${d.id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-car"></i> Unpark</button>`;
@@ -1140,9 +1146,11 @@ if (targetStageId === 'In Progress' && oldStatus === 'Uncontacted') {
                         <button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
                             <i class="fa-solid fa-street-view"></i> Log Stop
                         </button>
+                        ${d.status === 'In Progress' ? `
                         <button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
                             <i class="fa-solid fa-handshake"></i> Handoff
                         </button>
+                        ` : ''}
                     </div>
                 `;
             } else {
