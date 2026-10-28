@@ -230,14 +230,19 @@
         }
         const selectedDateStr = dateInput.value;
 
-        const scheduledActs = db.activities.filter(a => a.repId === currentUser.id && a.plannedDate === selectedDateStr && a.status === 'pending');
+const scheduledActs = db.activities.filter(a => {
+            if (a.repId !== currentUser.id || a.plannedDate !== selectedDateStr || a.status !== 'pending') return false;
+            const deal = myDeals.find(d => d.id === a.dealershipId);
+            if (!deal || deal.status === 'Handed Off') return false;
+            return true;
+        });
         const scheduledDealershipIds = scheduledActs.map(a => a.dealershipId);
         const scheduledDeals = scheduledActs.map(act => myDeals.find(d => d.id === act.dealershipId)).filter(Boolean);
         
         let suggestedDeals = myDeals.filter(d => !scheduledDealershipIds.includes(d.id));
 
         if (suggestTab === 'prospects') {
-            suggestedDeals = suggestedDeals.filter(d => d.status !== 'Client' && d.status !== 'Onboarding');
+            suggestedDeals = suggestedDeals.filter(d => d.status !== 'Client' && d.status !== 'Onboarding' && d.status !== 'Handed Off');
             if (goldenFilterActive) {
                 suggestedDeals = suggestedDeals.filter(d => {
                     const isDecaying = !d.lastTouchpointDate || daysBetween(d.lastTouchpointDate, today) > 30;
@@ -787,7 +792,7 @@
     function moveDealToStage(draggedDeal, targetStageId, targetDeal) {
         const oldStatus = getRealStatus(draggedDeal);
 
-        if (targetStageId === 'In Progress' && oldStatus === 'Uncontacted') {
+if (targetStageId === 'In Progress' && oldStatus === 'Uncontacted') {
             activeDealershipId = draggedDeal.id;
             draggedDeal.status = 'In Progress';
             draggedDeal.lastTouchpointDate = new Date().toISOString();
@@ -796,6 +801,12 @@
             showToast(`Moved ${draggedDeal.dealershipName} to In Progress. Please log your sales stop.`);
             openSalesStopWizard();
             return;
+        }
+
+        if (targetStageId === 'Handed Off' && oldStatus !== 'Handed Off' && !oldStatus.includes('Handoff')) {
+            activeDealershipId = draggedDeal.id;
+            initiateHandoff();
+            return; 
         }
 
         draggedDeal.status = targetStageId;
@@ -1046,6 +1057,7 @@
                 const p = db.payouts.find(x => x.dealershipId === d.id);
                 if (p && !p.meetingCompleted) {
                     actionsContainer.innerHTML += `<button type="button" disabled class="bg-yellow-50 text-yellow-700 border border-yellow-200 px-6 py-2 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed"><i class="fa-solid fa-hourglass-half"></i> Handoff In Process</button>`;
+                    actionsContainer.innerHTML += `<button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-6 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"><i class="fa-solid fa-xmark"></i> Cancel Handoff</button>`;
                 } else {
                     actionsContainer.innerHTML += `<button type="button" disabled class="bg-gray-50 text-green-700 border border-green-200 px-6 py-2 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed"><i class="fa-solid fa-check-double"></i> Handoff Confirmed</button>`;
                 }
@@ -1118,17 +1130,34 @@
                 </button>
             `;
         } else if (currentUser.role === 'rep') {
-            const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
-            actionsContainer.innerHTML += `
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="openScheduleModal()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-lg font-medium text-xs shadow-sm flex items-center gap-1.5 whitespace-nowrap">
-                        <i class="fa-regular fa-calendar-plus text-brand-600"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}
-                    </button>
-                    <button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
-                        <i class="fa-solid fa-street-view"></i> Log Stop
-                    </button>
-                </div>
-            `;
+            if (d.status !== 'Handed Off') {
+                const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
+                actionsContainer.innerHTML += `
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button type="button" onclick="openScheduleModal()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-lg font-medium text-xs shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-regular fa-calendar-plus text-brand-600"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}
+                        </button>
+                        <button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-street-view"></i> Log Stop
+                        </button>
+                        <button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-handshake"></i> Handoff
+                        </button>
+                    </div>
+                `;
+            } else {
+                const p = db.payouts.find(x => x.dealershipId === d.id);
+                if (p && !p.meetingCompleted) {
+                    actionsContainer.innerHTML += `
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button type="button" disabled class="bg-yellow-50 text-yellow-700 border border-yellow-200 px-3 py-2 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 cursor-not-allowed"><i class="fa-solid fa-hourglass-half"></i> Handoff In Process</button>
+                            <button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-2 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                        </div>
+                    `;
+                } else {
+                    actionsContainer.innerHTML += `<button type="button" disabled class="bg-gray-50 text-green-700 border border-green-200 px-4 py-2 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 cursor-not-allowed"><i class="fa-solid fa-check-double"></i> Handoff Confirmed</button>`;
+                }
+            }
         } else {
              actionsContainer.innerHTML += `
                 <button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium text-sm shadow-sm transition-colors flex items-center justify-center gap-2">
@@ -1444,7 +1473,29 @@
         
         if(currentView === 'pipeline') renderPipeline();
         if(currentView === 'dealerships') renderDealerships();
+        if(currentView === 'dashboard') renderDashboard();
         showToast("Account handed off successfully!", "success");
+    }
+
+    function cancelHandoff(id) {
+        const d = db.dealerships.find(x => x.id === id);
+        if (!d) return;
+
+        db.payouts = db.payouts.filter(p => !(p.dealershipId === id && !p.meetingCompleted));
+        d.status = 'In Progress';
+        d.lastTouchpointDate = new Date().toISOString(); 
+        
+        showToast("Handoff cancelled. Account is back in progress.");
+        
+        if (currentView === 'pipeline') renderPipeline();
+        if (currentView === 'dealerships') renderDealerships();
+        if (currentView === 'dashboard') renderDashboard();
+        
+        if (!document.getElementById('modal-quick-detail').classList.contains('hidden')) {
+            openQuickDealershipDetail(id);
+        } else if (!document.getElementById('view-dealership-detail').classList.contains('hidden')) {
+            openDealershipDetail(id);
+        }
     }
 
     function renderPayouts() {
