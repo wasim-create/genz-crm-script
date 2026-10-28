@@ -808,6 +808,11 @@ const scheduledActs = db.activities.filter(a => {
             return; 
         }
 
+        if (targetStageId === 'Parked' && oldStatus !== 'Parked' && oldStatus !== 'Auto-Parked') {
+            promptParkDealership(draggedDeal.id);
+            return;
+        }
+
         draggedDeal.status = targetStageId;
         reorderDealsInStage(targetStageId, draggedDeal, targetDeal);
         renderPipeline();
@@ -1147,6 +1152,15 @@ const scheduledActs = db.activities.filter(a => {
                             <i class="fa-solid fa-handshake"></i> Handoff
                         </button>
                         ` : ''}
+                        ${(getRealStatus(d) === 'Parked' || getRealStatus(d) === 'Auto-Parked') ? `
+                        <button type="button" onclick="toggleParkDealership('${d.id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-car"></i> Unpark
+                        </button>
+                        ` : `
+                        <button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-ban"></i> Park
+                        </button>
+                        `}
                     </div>
                 `;
             } else {
