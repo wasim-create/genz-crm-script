@@ -1055,9 +1055,7 @@ const scheduledActs = db.activities.filter(a => {
                     actionsContainer.innerHTML += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
                 }
                 
-                if (displayStatus === 'Parked' || displayStatus === 'Auto-Parked') {
-                    actionsContainer.innerHTML += `<button type="button" onclick="toggleParkDealership('${d.id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-car"></i> Unpark</button>`;
-                } else if (d.status === 'In Progress' || d.status === 'Uncontacted') {
+                if (d.status === 'In Progress' || d.status === 'Uncontacted') {
                     actionsContainer.innerHTML += `<button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-ban"></i> Park Account</button>`;
                 }
             } else {
@@ -1152,15 +1150,11 @@ const scheduledActs = db.activities.filter(a => {
                             <i class="fa-solid fa-handshake"></i> Handoff
                         </button>
                         ` : ''}
-                        ${(getRealStatus(d) === 'Parked' || getRealStatus(d) === 'Auto-Parked') ? `
-                        <button type="button" onclick="toggleParkDealership('${d.id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-solid fa-car"></i> Unpark
-                        </button>
-                        ` : `
+                        ${(getRealStatus(d) !== 'Parked' && getRealStatus(d) !== 'Auto-Parked') ? `
                         <button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap">
                             <i class="fa-solid fa-ban"></i> Park
                         </button>
-                        `}
+                        ` : ''}
                     </div>
                 `;
             } else {
@@ -1246,10 +1240,25 @@ const scheduledActs = db.activities.filter(a => {
             plannedDate: dateStr, orderIndex: 99
         });
 
+        const d = db.dealerships.find(x => x.id === activeDealershipId);
+        if (d && (d.status === 'Parked' || d.status === 'Uncontacted')) {
+            d.status = 'In Progress';
+            d.lastTouchpointDate = new Date().toISOString();
+        }
+
         closeModal('modal-schedule');
-        openQuickDealershipDetail(activeDealershipId);
-        showToast(`Target added to your planner for ${formatDate(dateStr)}`);
+        
+        if (!document.getElementById('modal-quick-detail').classList.contains('hidden')) {
+            openQuickDealershipDetail(activeDealershipId);
+        } else if (!document.getElementById('view-dealership-detail').classList.contains('hidden')) {
+            openDealershipDetail(activeDealershipId);
+        }
+
+        showToast(`Target scheduled for ${formatDate(dateStr)}`);
+        
         if (currentView === 'dashboard') renderDashboard();
+        if (currentView === 'pipeline') renderPipeline();
+        if (currentView === 'dealerships') renderDealerships();
     }
 
     function openSalesStopWizard() {
@@ -1285,7 +1294,7 @@ const scheduledActs = db.activities.filter(a => {
         const d = db.dealerships.find(x => x.id === activeDealershipId);
         if (d) {
             d.lastTouchpointDate = new Date().toISOString();
-            if (d.status === 'Uncontacted') d.status = 'In Progress';
+            if (d.status === 'Uncontacted' || d.status === 'Parked') d.status = 'In Progress';
         }
 
         closeModal('modal-sales-stop');
@@ -1455,6 +1464,17 @@ const scheduledActs = db.activities.filter(a => {
         if (!note) {
             return showToast("Please provide a reason for parking the account.", "error");
         }
+
+        const pendingActIndex = db.activities.findIndex(a => a.dealershipId === dealershipToPark && a.status === 'pending');
+        if (pendingActIndex > -1) {
+            const pendingAct = db.activities[pendingActIndex];
+            db.activities.push({
+                id: generateId('a'), repId: currentUser.id, dealershipId: dealershipToPark, contactId: null,
+                activityType: 'System Log', communicationType: 'System', status: 'completed',
+                completedAt: new Date().toISOString(), notes: `Schedule Cancelled (Account Parked). Originally planned for: ${formatDate(pendingAct.plannedDate)}`, nextActionDate: null
+            });
+            db.activities.splice(pendingActIndex, 1);
+        }
         
         db.activities.push({
             id: generateId('a'), repId: currentUser.id, dealershipId: dealershipToPark, contactId: null,
@@ -1465,6 +1485,7 @@ const scheduledActs = db.activities.filter(a => {
         toggleParkDealership(dealershipToPark, true);
         closeModal('modal-confirm-park');
         dealershipToPark = null;
+        if (currentView === 'dashboard') renderDashboard();
     }
 
     // --- DASHBOARD / OTHER VIEWS (Payouts, Manager, Exec, Finance, Admin) ---
