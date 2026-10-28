@@ -792,13 +792,9 @@ const scheduledActs = db.activities.filter(a => {
     function moveDealToStage(draggedDeal, targetStageId, targetDeal) {
         const oldStatus = getRealStatus(draggedDeal);
 
-if (targetStageId === 'In Progress' && oldStatus === 'Uncontacted') {
+        if (targetStageId === 'In Progress' && oldStatus === 'Uncontacted') {
             activeDealershipId = draggedDeal.id;
-            draggedDeal.status = 'In Progress';
-            draggedDeal.lastTouchpointDate = new Date().toISOString();
-            reorderDealsInStage(targetStageId, draggedDeal, targetDeal);
-            renderPipeline();
-            showToast(`Moved ${draggedDeal.dealershipName} to In Progress. Please log your sales stop.`);
+            showToast("Please log a sales stop to move account to In Progress.");
             openSalesStopWizard();
             return;
         }
@@ -1433,11 +1429,25 @@ if (targetStageId === 'In Progress' && oldStatus === 'Uncontacted') {
 
     function promptParkDealership(id) {
         dealershipToPark = id;
+        const parkNote = document.getElementById('park-note');
+        if (parkNote) parkNote.value = '';
         document.getElementById('modal-confirm-park').classList.remove('hidden');
     }
 
     function executeParkDealership() {
         if(!dealershipToPark) return;
+        
+        const note = document.getElementById('park-note')?.value.trim();
+        if (!note) {
+            return showToast("Please provide a reason for parking the account.", "error");
+        }
+        
+        db.activities.push({
+            id: generateId('a'), repId: currentUser.id, dealershipId: dealershipToPark, contactId: null,
+            activityType: 'System Log', communicationType: 'System', status: 'completed',
+            completedAt: new Date().toISOString(), notes: `Account Parked: ${note}`, nextActionDate: null
+        });
+
         toggleParkDealership(dealershipToPark, true);
         closeModal('modal-confirm-park');
         dealershipToPark = null;
