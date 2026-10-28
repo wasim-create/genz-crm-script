@@ -645,7 +645,7 @@ const scheduledActs = db.activities.filter(a => {
                              ondragover="handlePipelineCardDragOver(event)"
                              ondragleave="handlePipelineCardDragLeave(event)"
                              ondrop="handlePipelineCardDrop(event, '${d.id}', '${stage.id}')"
-                             onclick="openQuickDealershipDetail('${d.id}')" 
+                             onclick="if(window.isDraggingPipelineCard) return; openQuickDealershipDetail('${d.id}')" 
                              class="pipeline-card-item pipeline-card-draggable bg-white p-3.5 rounded-xl shadow-sm border border-gray-200 hover:border-brand-500 hover:shadow-md transition-all group relative">
                             
                             <div class="flex justify-between items-start gap-2 mb-1.5">
@@ -684,6 +684,7 @@ const scheduledActs = db.activities.filter(a => {
     }
 
     function handlePipelineCardDragStart(e, id) {
+        window.isDraggingPipelineCard = true;
         draggedDealershipId = id;
         e.dataTransfer.setData('text/plain', id);
         e.dataTransfer.effectAllowed = 'move';
@@ -694,6 +695,7 @@ const scheduledActs = db.activities.filter(a => {
     }
 
     function handlePipelineCardDragEnd(e, id) {
+        setTimeout(() => window.isDraggingPipelineCard = false, 100);
         const el = document.getElementById('pipeline-card-' + id);
         if (el) el.classList.remove('drag-card-ghost');
         document.querySelectorAll('.pipeline-card-item').forEach(c => c.classList.remove('drag-target-hover', 'ring-2', 'ring-brand-500'));
@@ -792,10 +794,10 @@ const scheduledActs = db.activities.filter(a => {
     function moveDealToStage(draggedDeal, targetStageId, targetDeal) {
         const oldStatus = getRealStatus(draggedDeal);
 
-        if (targetStageId === 'In Progress' && oldStatus === 'Uncontacted') {
+        if (targetStageId === 'In Progress' && (oldStatus === 'Uncontacted' || oldStatus === 'Parked' || oldStatus === 'Auto-Parked')) {
             activeDealershipId = draggedDeal.id;
-            showToast("Please log a sales stop to move account to In Progress.");
-            openSalesStopWizard();
+            showToast("Please schedule a visit or log a sales stop to move to In Progress.", "error");
+            openQuickDealershipDetail(draggedDeal.id);
             return;
         }
 
