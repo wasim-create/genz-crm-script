@@ -15,7 +15,7 @@
 </div>
 
 <!-- 2. Smart Suggestions Modal -->
-<div id="modal-smart-suggestions" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[100] flex items-center justify-center p-4 hidden">
+<div id="modal-smart-suggestions" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[80] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
         <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-lightbulb text-yellow-500"></i> Select Target to Insert</h3>
@@ -43,7 +43,7 @@
 </div>
 
 <!-- 3. Schedule Visit Modal -->
-<div id="modal-schedule" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[110] flex items-center justify-center p-4 hidden">
+<div id="modal-schedule" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[90] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <h3 class="font-bold text-lg"><i class="fa-regular fa-calendar-plus text-brand-600 mr-2"></i> Schedule Visit</h3>
@@ -65,7 +65,7 @@
 </div>
 
 <!-- 4. Comprehensive Audit Trail Modal -->
-<div id="modal-audit" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[120] flex items-center justify-center p-4 hidden">
+<div id="modal-audit" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[140] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <div>
@@ -85,7 +85,7 @@
 </div>
 
 <!-- 5. Finance Authorization Modal -->
-<div id="modal-finance-approve" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[130] flex items-center justify-center p-4 hidden">
+<div id="modal-finance-approve" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[150] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <h3 class="font-bold text-lg text-gray-900 flex items-center gap-2">
@@ -140,7 +140,7 @@
 </div>
 
 <!-- 6. User Profile Modal -->
-<div id="modal-user-profile" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[140] flex items-center justify-center p-4 hidden">
+<div id="modal-user-profile" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[170] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <h3 class="font-bold text-lg"><i class="fa-solid fa-user-pen text-brand-600 mr-2"></i> Edit Profile</h3>
@@ -172,7 +172,7 @@
 </div>
 
 <!-- 7. Add Prospect Modal -->
-<div id="modal-add-prospect" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[150] flex items-center justify-center p-4 hidden">
+<div id="modal-add-prospect" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[160] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <h3 class="font-bold text-lg" id="modal-prospect-title"><i class="fa-solid fa-building-circle-check text-brand-600 mr-2"></i> Add New Prospect</h3>
@@ -266,7 +266,7 @@
 </div>
 
 <!-- 8. Sales Stop Wizard Modal -->
-<div id="modal-sales-stop" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[160] flex items-center justify-center p-4 hidden">
+<div id="modal-sales-stop" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[100] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <h3 class="font-bold text-lg"><i class="fa-solid fa-street-view text-brand-600 mr-2"></i> Log Sales Stop</h3>
@@ -276,7 +276,7 @@
         <div class="p-6 overflow-y-auto flex-grow relative">
             <form id="form-sales-stop" class="space-y-6">
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">1. Communication Type</label>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Communication Type</label>
                     <div class="grid grid-cols-3 gap-3">
                         <label class="cursor-pointer">
                             <input type="radio" name="comm_type" value="In-Person" class="peer sr-only" checked>
@@ -323,7 +323,7 @@
 </div>
 
 <!-- 9. Quick Dealership Detail Modal (Popin for Route Planner & Pipeline) -->
-<div id="modal-quick-detail" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[170] flex items-center justify-center p-4 hidden">
+<div id="modal-quick-detail" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh]">
         <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-building text-brand-600"></i> Dealership Quick View</h3>
@@ -375,7 +375,7 @@
 </div>
 
 <!-- 10. Confirm Park Modal -->
-<div id="modal-confirm-park" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[180] flex items-center justify-center p-4 hidden">
+<div id="modal-confirm-park" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[120] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col">
         <div class="p-5 border-b border-gray-100 flex items-center bg-gray-50 rounded-t-xl gap-3">
             <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
@@ -394,7 +394,7 @@
 </div>
 
 <!-- 11. Handoff Selection Modal -->
-<div id="modal-handoff" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[190] flex items-center justify-center p-4 hidden">
+<div id="modal-handoff" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[130] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <h3 class="font-bold text-lg"><i class="fa-solid fa-handshake text-brand-600 mr-2"></i> Initiate Handoff</h3>
@@ -419,7 +419,7 @@
 </div>
 
 <!-- 12. Add Contact Modal -->
-<div id="modal-add-contact" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[200] flex items-center justify-center p-4 hidden">
+<div id="modal-add-contact" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[110] flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
             <h3 class="font-bold text-lg" id="modal-contact-title"><i class="fa-solid fa-address-card text-brand-600 mr-2"></i> Add Contact to Roster</h3>
