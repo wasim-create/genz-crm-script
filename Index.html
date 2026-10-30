@@ -50,6 +50,11 @@
             <div id="mobile-menu" class="hidden md:flex flex-col flex-grow overflow-y-auto hide-scroll p-3 space-y-1">
                 <!-- OPERATIONS NAV -->
                 <div class="nav-group-rep nav-group-manager hidden nav-group-label text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 mt-2 px-2">Operations</div>
+                
+                <button type="button" id="nav-performance" onclick="nav('performance')" class="nav-group-rep nav-group-manager hidden nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-gray-600 hover:bg-gray-50 hover:text-brand-600 transition-colors" data-target="performance">
+                    <i class="fa-solid fa-chart-line w-5 text-center flex-shrink-0"></i> <span class="sidebar-text whitespace-nowrap">Performance Metrics</span>
+                </button>
+
                 <button type="button" id="nav-dashboard" onclick="nav('dashboard')" class="nav-group-rep nav-group-manager hidden nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-gray-600 hover:bg-gray-50 hover:text-brand-600 transition-colors" data-target="dashboard">
                     <i class="fa-solid fa-route w-5 text-center flex-shrink-0"></i> <span class="sidebar-text whitespace-nowrap">Route Planner</span>
                 </button>
