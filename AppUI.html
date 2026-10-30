@@ -148,7 +148,10 @@
         document.getElementById(`view-${target}`).classList.remove('hidden');
         document.getElementById('mobile-menu').classList.add('hidden');
 
-        if (target === 'dashboard') {
+        if (target === 'performance') {
+            document.getElementById('page-title').innerText = "Performance Overview";
+            renderPerformance();
+        } else if (target === 'dashboard') {
             document.getElementById('page-title').innerText = "Dashboard & Route Planner";
             renderDashboard();
         } else if (target === 'pipeline') {
@@ -1977,6 +1980,81 @@ const scheduledActs = db.activities.filter(a => {
         document.getElementById('filter-hide-confirmed').checked = false;
         document.querySelectorAll('.filter-type, .filter-status').forEach(el => el.checked = false);
         applyFilters();
+    }
+
+    function renderPerformance() {
+        const isManager = currentUser.role === 'manager';
+        
+        document.getElementById('perf-title').innerText = isManager ? "Team Cumulative Performance" : "My Performance Metrics";
+        document.getElementById('perf-subtitle').innerText = isManager ? "Aggregated stats for you and your direct reports." : "Your activity tracking and verified touches.";
+        
+        let teamIds = [currentUser.id];
+        if (isManager) {
+            const reports = db.users.filter(u => u.managerId === currentUser.id);
+            teamIds = [currentUser.id, ...reports.map(r => r.id)];
+            document.getElementById('perf-manager-section').classList.remove('hidden');
+        } else {
+            document.getElementById('perf-manager-section').classList.add('hidden');
+        }
+
+        // Helper to mock data consistently per user for the prototype
+        const generateStats = (userId) => {
+            const seed = userId.length; 
+            return {
+                emails: 12 + (seed * 5),
+                calls: 8 + (seed * 3),
+                texts: 20 + (seed * 7),
+                convs: 2 + seed,
+                apptsBooked: Math.floor(seed / 2),
+                apptsHeld: seed
+            };
+        };
+
+        // Aggregate Totals
+        let totals = { emails: 0, calls: 0, texts: 0, convs: 0, apptsBooked: 0, apptsHeld: 0 };
+        const tbody = document.getElementById('perf-team-body');
+        if (tbody) tbody.innerHTML = '';
+
+        teamIds.forEach(id => {
+            const user = db.users.find(u => u.id === id);
+            const stats = generateStats(id);
+            
+            totals.emails += stats.emails;
+            totals.calls += stats.calls;
+            totals.texts += stats.texts;
+            totals.convs += stats.convs;
+            totals.apptsBooked += stats.apptsBooked;
+            totals.apptsHeld += stats.apptsHeld;
+
+            if (isManager && tbody && user) {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-4">
+                            <div class="font-bold text-gray-900">${user.firstName} ${user.lastName} ${id === currentUser.id ? '(You)' : ''}</div>
+                            <div class="text-[10px] text-gray-500 uppercase">${user.role}</div>
+                        </td>
+                        <td class="p-4 text-center font-medium">${stats.emails}</td>
+                        <td class="p-4 text-center font-medium">${stats.calls}</td>
+                        <td class="p-4 text-center font-medium">${stats.texts}</td>
+                        <td class="p-4 text-center font-bold text-blue-600 bg-blue-50/30">${stats.convs}</td>
+                        <td class="p-4 text-center font-bold text-green-600 bg-green-50/30">${stats.apptsBooked + stats.apptsHeld}</td>
+                    </tr>
+                `;
+            }
+        });
+
+        // Hardcode exactly to the screenshot if it's the specific veteran rep for the demo
+        if (currentUser.id === 'u_rep_vet' && !isManager) {
+            totals = { emails: 52, calls: 33, texts: 80, convs: 11, apptsBooked: 1, apptsHeld: 4 };
+        }
+
+        // Update the 5 Top Cards
+        document.getElementById('stat-emails').innerText = totals.emails;
+        document.getElementById('stat-calls').innerText = totals.calls;
+        document.getElementById('stat-texts').innerText = totals.texts;
+        document.getElementById('stat-convs').innerText = totals.convs;
+        document.getElementById('stat-appts').innerText = totals.apptsBooked + totals.apptsHeld;
+        document.getElementById('stat-appts-sub').innerText = `${totals.apptsBooked} Booked / ${totals.apptsHeld} Held`;
     }
 
     function toggleParkDealership(id, forcePark = false) {
