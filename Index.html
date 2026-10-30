@@ -52,7 +52,7 @@
                 <div class="nav-group-rep nav-group-manager hidden nav-group-label text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 mt-2 px-2">Operations</div>
                 
                 <button type="button" id="nav-performance" onclick="nav('performance')" class="nav-group-rep nav-group-manager hidden nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-gray-600 hover:bg-gray-50 hover:text-brand-600 transition-colors" data-target="performance">
-                    <i class="fa-solid fa-chart-line w-5 text-center flex-shrink-0"></i> <span class="sidebar-text whitespace-nowrap">Performance Metrics</span>
+                    <i class="fa-solid fa-chart-line w-5 text-center flex-shrink-0"></i> <span class="sidebar-text whitespace-nowrap">Game Day</span>
                 </button>
 
                 <button type="button" id="nav-dashboard" onclick="nav('dashboard')" class="nav-group-rep nav-group-manager hidden nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-gray-600 hover:bg-gray-50 hover:text-brand-600 transition-colors" data-target="dashboard">
@@ -186,18 +186,26 @@
 
                     <!-- Manager Team Breakdown Table (Hidden for standard reps) -->
                     <div id="perf-manager-section" class="hidden mt-8 space-y-4">
-                        <h3 class="text-lg font-bold text-gray-900 border-b border-gray-200 pb-2">Team Breakdown</h3>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-gray-200 pb-2 gap-2">
+                            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider">Weekly Rep Scorecard (Click any number or note to edit during call)</h3>
+                            <span class="text-xs text-gray-500 font-medium">Preserved from Master Sheet</span>
+                        </div>
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
-                                        <tr class="bg-gray-50 text-gray-500 text-[10px] font-bold uppercase tracking-wider border-b border-gray-200">
-                                            <th class="p-4">Team Member</th>
-                                            <th class="p-4 text-center">Emails</th>
-                                            <th class="p-4 text-center">Calls</th>
-                                            <th class="p-4 text-center">Texts</th>
-                                            <th class="p-4 text-center text-blue-700">Live Convs</th>
-                                            <th class="p-4 text-center text-green-700">Appointments</th>
+                                        <tr class="bg-gray-50 text-gray-700 text-xs font-bold border-b border-gray-200 whitespace-nowrap">
+                                            <th class="p-4">Rep Name</th>
+                                            <th class="p-3 text-center">Social</th>
+                                            <th class="p-3 text-center">Emails</th>
+                                            <th class="p-3 text-center">Calls</th>
+                                            <th class="p-3 text-center">Texts</th>
+                                            <th class="p-3 text-center text-blue-800">Live<br>Convs</th>
+                                            <th class="p-3 text-center text-green-800">DM<br>Appts</th>
+                                            <th class="p-3 text-center text-gray-600">AI<br>Handoff</th>
+                                            <th class="p-4">Outcome & Deals Won</th>
+                                            <th class="p-4">Next Steps & Support Needed</th>
+                                            <th class="p-4 text-center">Support Owner</th>
                                         </tr>
                                     </thead>
                                     <tbody id="perf-team-body" class="divide-y divide-gray-100 text-sm">
