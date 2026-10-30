@@ -149,7 +149,7 @@
         document.getElementById('mobile-menu').classList.add('hidden');
 
         if (target === 'performance') {
-            document.getElementById('page-title').innerText = "Performance Overview";
+            document.getElementById('page-title').innerText = "Game Day";
             renderPerformance();
         } else if (target === 'dashboard') {
             document.getElementById('page-title').innerText = "Dashboard & Route Planner";
@@ -1985,7 +1985,7 @@ const scheduledActs = db.activities.filter(a => {
     function renderPerformance() {
         const isManager = currentUser.role === 'manager';
         
-        document.getElementById('perf-title').innerText = isManager ? "Team Cumulative Performance" : "My Performance Metrics";
+        document.getElementById('perf-title').innerText = isManager ? "Team Cumulative Performance" : "My Game Day Metrics";
         document.getElementById('perf-subtitle').innerText = isManager ? "Aggregated stats for you and your direct reports." : "Your activity tracking and verified touches.";
         
         let teamIds = [currentUser.id];
@@ -1997,16 +1997,40 @@ const scheduledActs = db.activities.filter(a => {
             document.getElementById('perf-manager-section').classList.add('hidden');
         }
 
-        // Helper to mock data consistently per user for the prototype
-        const generateStats = (userId) => {
-            const seed = userId.length; 
+        // Generate Contextual Data to mirror the screenshot layout
+        const generateStats = (userId, index) => {
+            const seed = userId.length + index; 
+            
+            const mockOutcomes = [
+                "12 live meetings last week; 1 indy agent onboarded<br><span class='text-gray-400 text-xs'>Holman 11-store training lock; Baywatch NADA roadmap</span>",
+                "Classic Hyundai of Sherman<br><span class='text-gray-400 text-xs'>Holiday Automotive group (might be DOWC structure)</span>",
+                "Group1 HEN store visits; ALM & First Choice",
+                "Cold drop-ins: McGovern, Sawmill, Kaplin<br><span class='text-gray-400 text-xs'>Sawmill waiting on controller sign-off</span>",
+                "<span class='text-gray-400 italic'>No deals reported</span>"
+            ];
+            
+            const mockNextSteps = [
+                "Follow up emails and text; finalize Ceramic",
+                "<span class='text-red-600 font-medium'>Need Jason assistance with DOWC unrem</span>",
+                "Visiting ALM today; finalize EV warranty att",
+                "<span class='text-red-600 font-medium'>Sawmill tomorrow; needs exec support or</span>",
+                "<span class='text-gray-400'>Enter planned steps...</span>"
+            ];
+            
+            const mockOwners = ["Self", "Jason Scott", "Self", "Jason Scott", "None"];
+            const hasData = index < 4;
+
             return {
-                emails: 12 + (seed * 5),
-                calls: 8 + (seed * 3),
-                texts: 20 + (seed * 7),
-                convs: 2 + seed,
-                apptsBooked: Math.floor(seed / 2),
-                apptsHeld: seed
+                social: hasData ? (index === 0 ? '' : seed % 6) : '—',
+                emails: hasData ? 9 + (index * 6) : '—',
+                calls: hasData ? 3 + (index * 4) : '—',
+                texts: hasData ? 5 + (index * 13) : '—',
+                convs: hasData ? (index === 2 ? '' : (index === 0 ? 4 : 2)) : '—',
+                apptsBooked: hasData ? (index === 2 ? 2 : 1) : '—',
+                aiHandoff: index === 0 ? 3 : '',
+                outcome: mockOutcomes[Math.min(index, 4)],
+                nextSteps: mockNextSteps[Math.min(index, 4)],
+                supportOwner: mockOwners[Math.min(index, 4)]
             };
         };
 
@@ -2015,35 +2039,47 @@ const scheduledActs = db.activities.filter(a => {
         const tbody = document.getElementById('perf-team-body');
         if (tbody) tbody.innerHTML = '';
 
-        teamIds.forEach(id => {
+        teamIds.forEach((id, index) => {
             const user = db.users.find(u => u.id === id);
-            const stats = generateStats(id);
+            const stats = generateStats(id, index);
             
-            totals.emails += stats.emails;
-            totals.calls += stats.calls;
-            totals.texts += stats.texts;
-            totals.convs += stats.convs;
-            totals.apptsBooked += stats.apptsBooked;
-            totals.apptsHeld += stats.apptsHeld;
+            // Calc totals (ignoring dashes)
+            if (stats.emails !== '—') totals.emails += stats.emails;
+            if (stats.calls !== '—') totals.calls += stats.calls;
+            if (stats.texts !== '—') totals.texts += stats.texts;
+            if (stats.convs !== '—' && stats.convs !== '') totals.convs += stats.convs;
+            if (stats.apptsBooked !== '—') totals.apptsBooked += stats.apptsBooked;
+            totals.apptsHeld += (index === 0 ? 4 : 0); // Fake held metric
 
             if (isManager && tbody && user) {
+                
+                // Style Support Owner Badge
+                let ownerBadge = `<span class="px-2.5 py-1 rounded bg-gray-100 text-gray-600 text-[10px] font-bold">Self</span>`;
+                if (stats.supportOwner === "Jason Scott") ownerBadge = `<span class="px-2.5 py-1 rounded bg-red-50 text-red-700 text-[10px] font-bold border border-red-100">Jason Scott</span>`;
+                if (stats.supportOwner === "None") ownerBadge = `<span class="px-2.5 py-1 rounded bg-transparent text-gray-400 text-[10px] font-bold">None</span>`;
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="p-4">
-                            <div class="font-bold text-gray-900">${user.firstName} ${user.lastName} ${id === currentUser.id ? '(You)' : ''}</div>
-                            <div class="text-[10px] text-gray-500 uppercase">${user.role}</div>
+                        <td class="p-4 align-top">
+                            <div class="font-bold text-gray-900">${user.firstName} ${user.lastName}</div>
+                            <div class="text-[10px] text-gray-400 uppercase tracking-wider">${user.role === 'manager' ? 'CRO' : user.role}</div>
                         </td>
-                        <td class="p-4 text-center font-medium">${stats.emails}</td>
-                        <td class="p-4 text-center font-medium">${stats.calls}</td>
-                        <td class="p-4 text-center font-medium">${stats.texts}</td>
-                        <td class="p-4 text-center font-bold text-blue-600 bg-blue-50/30">${stats.convs}</td>
-                        <td class="p-4 text-center font-bold text-green-600 bg-green-50/30">${stats.apptsBooked + stats.apptsHeld}</td>
+                        <td class="p-3 text-center align-top text-gray-600">${stats.social}</td>
+                        <td class="p-3 text-center align-top text-gray-600">${stats.emails}</td>
+                        <td class="p-3 text-center align-top text-gray-600">${stats.calls}</td>
+                        <td class="p-3 text-center align-top text-gray-600">${stats.texts}</td>
+                        <td class="p-3 text-center align-top font-bold text-blue-800">${stats.convs}</td>
+                        <td class="p-3 text-center align-top font-bold text-green-700">${stats.apptsBooked}</td>
+                        <td class="p-3 text-center align-top text-gray-600">${stats.aiHandoff}</td>
+                        <td class="p-4 align-top text-sm text-gray-800 leading-tight">${stats.outcome}</td>
+                        <td class="p-4 align-top text-sm text-gray-800 leading-tight">${stats.nextSteps}</td>
+                        <td class="p-4 text-center align-top">${ownerBadge}</td>
                     </tr>
                 `;
             }
         });
 
-        // Hardcode exactly to the screenshot if it's the specific veteran rep for the demo
+        // Hardcode specific header stat numbers for the prototype demo
         if (currentUser.id === 'u_rep_vet' && !isManager) {
             totals = { emails: 52, calls: 33, texts: 80, convs: 11, apptsBooked: 1, apptsHeld: 4 };
         }
