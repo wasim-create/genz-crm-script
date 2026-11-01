@@ -2170,18 +2170,20 @@ const scheduledActs = db.activities.filter(a => {
     }
 
     function importMockMeetNotes() {
+        document.getElementById('modal-drive-import').classList.remove('hidden');
+    }
+
+    function selectDriveNote(summaryText) {
         const notesEl = document.getElementById('stop-notes');
         if (!notesEl) return;
         
-        // Mock data simulating a Google Meet transcription summary pulled from Drive
-        const mockSummary = "--- Google Meet Transcription Summary ---\n• Discussed Q3 product rollout and Ceramic Pro collateral.\n• Key Objection: F&I team needs more hands-on training.\n• Action Item: Schedule a virtual walk-through for Nov 16.\n• Sentiment: Highly Positive / Ready to move forward.";
-        
         if (notesEl.value.trim() === '') {
-            notesEl.value = mockSummary;
+            notesEl.value = summaryText;
         } else {
-            notesEl.value += "\n\n" + mockSummary;
+            notesEl.value += "\n\n" + summaryText;
         }
         
+        closeModal('modal-drive-import');
         showToast("Meeting summary imported from Google Drive!");
     }
 </script>
