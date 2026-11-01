@@ -126,6 +126,7 @@
         else if(currentUser.role === 'manager' || currentUser.role === 'executive') nav('desk');
         else if(currentUser.role === 'finance') nav('finance');
         else if(currentUser.role === 'admin') nav('admin');
+        else nav('dashboard');
 
         const personaSelect = document.getElementById('persona-selector');
         if (personaSelect) personaSelect.value = userId;
@@ -149,6 +150,10 @@
         document.getElementById('mobile-menu').classList.add('hidden');
 
         if (target === 'desk') {
+            if (currentUser.role !== 'manager' && currentUser.role !== 'executive') {
+                showToast("Access restricted to Managers and Executives only.", "error");
+                return nav(currentUser.role === 'admin' ? 'admin' : 'dashboard');
+            }
             document.getElementById('page-title').innerText = "Executive Decision Center";
         } else if (target === 'performance') {
             document.getElementById('page-title').innerText = "Game Day";
