@@ -309,10 +309,10 @@
                     <div class="flex justify-between items-end mb-2">
                         <label class="block text-sm font-bold text-gray-700">3. Outcome & Notes</label>
                         <div id="in-person-tools" class="flex gap-2">
-                            <a href="https://meet.google.com/new" target="_blank" class="text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1 transition-colors shadow-sm" title="Launch Google Meet App">
+                            <a href="https://meet.google.com/" target="_blank" class="text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1 transition-colors shadow-sm" title="Open Google Meet Homepage">
                                 <i class="fa-solid fa-video"></i> Launch Meet
                             </a>
-                            <button type="button" onclick="importMockMeetNotes()" class="text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded hover:bg-green-100 flex items-center gap-1 transition-colors shadow-sm" title="Import Meet Summary from Google Drive">
+                            <button type="button" onclick="importMockMeetNotes()" class="text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded hover:bg-green-100 flex items-center gap-1 transition-colors shadow-sm" title="Select Meet Summary from Google Drive">
                                 <i class="fa-brands fa-google-drive"></i> Import from Drive
                             </button>
                         </div>
@@ -493,6 +493,37 @@
         <div class="p-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
             <button type="button" onclick="closeModal('modal-add-contact')" class="px-5 py-2 text-gray-600 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancel</button>
             <button type="button" onclick="submitAddContact()" class="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors shadow-sm">Save to Hierarchy</button>
+        </div>
+    </div>
+</div>
+
+<!-- 13. Drive Import Modal -->
+<div id="modal-drive-import" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[200] flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh]">
+        <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+            <h3 class="font-bold text-lg text-gray-900"><i class="fa-brands fa-google-drive text-green-600 mr-2"></i> Select Meet Notes</h3>
+            <button type="button" onclick="closeModal('modal-drive-import')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times text-xl"></i></button>
+        </div>
+        <div class="p-4 overflow-y-auto flex-grow space-y-3">
+            <p class="text-xs text-gray-500 mb-2">Recent In-Person Meet Transcripts:</p>
+            
+            <button type="button" onclick="selectDriveNote('--- Google Meet Summary: Q3 Product Rollout ---\n• Discussed Ceramic Pro collateral.\n• Key Objection: F&I team needs more hands-on training.\n• Action: Schedule virtual walk-through Nov 16.\n• Sentiment: Highly Positive.')" class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors shadow-sm bg-white">
+                <div class="font-bold text-sm text-gray-900 flex items-center gap-2"><i class="fa-solid fa-file-lines text-green-600"></i> Meet Summary: Q3 Product Rollout</div>
+                <div class="text-[11px] text-gray-500 mt-1 pl-6">Modified: Today, 10:45 AM</div>
+            </button>
+            
+            <button type="button" onclick="selectDriveNote('--- Google Meet Summary: Reinsurance Audit ---\n• Controller signed off on retroactive pool.\n• Missing GAP addendum from last month.\n• Action: Send via DocuSign ASAP to finalize.')" class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors shadow-sm bg-white">
+                <div class="font-bold text-sm text-gray-900 flex items-center gap-2"><i class="fa-solid fa-file-lines text-green-600"></i> Meet Summary: Reinsurance Audit</div>
+                <div class="text-[11px] text-gray-500 mt-1 pl-6">Modified: Yesterday, 4:20 PM</div>
+            </button>
+            
+            <button type="button" onclick="selectDriveNote('--- Google Meet Summary: Initial Discovery ---\n• Met with Dealer Principal.\n• Currently using competitor for VSC.\n• Pain point: Claims payout speed is too slow.\n• Next Step: Pricing comparison next Tuesday.')" class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors shadow-sm bg-white">
+                <div class="font-bold text-sm text-gray-900 flex items-center gap-2"><i class="fa-solid fa-file-lines text-green-600"></i> Meet Summary: Initial Discovery</div>
+                <div class="text-[11px] text-gray-500 mt-1 pl-6">Modified: Oct 28, 9:15 AM</div>
+            </button>
+        </div>
+        <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end rounded-b-xl">
+            <button type="button" onclick="closeModal('modal-drive-import')" class="px-5 py-2 text-gray-600 font-medium hover:bg-gray-200 rounded-lg transition-colors text-sm">Cancel</button>
         </div>
     </div>
 </div>
