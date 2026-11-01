@@ -78,7 +78,12 @@
                 </button>
 
                 <!-- MANAGER NAV -->
-                <div class="nav-group-manager hidden nav-group-label text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 mt-6 px-2">Management</div>
+                <div class="nav-group-manager nav-group-executive nav-group-admin hidden nav-group-label text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 mt-6 px-2">Management</div>
+                
+                <button type="button" id="nav-desk" onclick="nav('desk')" class="nav-group-manager nav-group-executive nav-group-admin hidden nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-gray-600 hover:bg-gray-50 hover:text-brand-600 transition-colors" data-target="desk">
+                    <i class="fa-solid fa-briefcase w-5 text-center flex-shrink-0"></i> <span class="sidebar-text whitespace-nowrap">Executive Desk</span>
+                </button>
+
                 <button type="button" id="nav-manager" onclick="nav('manager')" class="nav-group-manager hidden nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-gray-600 hover:bg-gray-50 hover:text-brand-600 transition-colors" data-target="manager">
                     <i class="fa-solid fa-users w-5 text-center flex-shrink-0"></i> <span class="sidebar-text whitespace-nowrap">Team Dashboard</span>
                 </button>
@@ -141,6 +146,223 @@
 
             <div id="views-container" class="flex-grow overflow-y-auto p-4 md:p-6 hide-scroll relative">
                 
+                <!-- EXECUTIVE DECISION CENTER VIEW -->
+                <div id="view-desk" class="view-panel hidden fade-in space-y-6">
+                    <!-- Header -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-gray-200">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 tracking-tight">My Desk — Executive Decision Center</h2>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Weekly oversight, team bottlenecks, and pending approvals.</p>
+                        </div>
+                        <button type="button" onclick="nav('performance')" class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-chart-line"></i> Open Game Day Scorecard
+                        </button>
+                    </div>
+
+                    <!-- 2-Column Dashboard Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                        
+                        <!-- LEFT COLUMN (2 Cols Wide) -->
+                        <div class="lg:col-span-2 space-y-6">
+                            
+                            <!-- 1. Who Needs My Help -->
+                            <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-red-500"></span> WHO NEEDS MY HELP? (ACTIVE BOTTLENECK)
+                                    </h3>
+                                    <span class="text-xs font-medium text-gray-400">2 Escalations</span>
+                                </div>
+
+                                <!-- Bottleneck Item 1 (Red) -->
+                                <div class="bg-red-50/30 border border-red-200/70 rounded-xl p-4 transition-all hover:border-red-300">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                                        <div class="font-bold text-sm text-red-900">Michael Ballero — Classic Hyundai of Sherman</div>
+                                        <span class="text-[11px] font-bold text-red-600 font-mono tracking-wide">DOWC Claim #725571</span>
+                                    </div>
+                                    <p class="text-xs text-gray-700 leading-relaxed mb-3">
+                                        Trade-in stalled in showroom over $1,920.57 unpaid claim dating to Aug 17. Finance Director cannot finalize cancel quote without admin clearance.
+                                    </p>
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-red-100">
+                                        <div class="text-xs font-bold text-red-600">Overdue: 5 Days Since Trade Attempt</div>
+                                        <button type="button" onclick="showToast('Initiating connection to DOWC claims liaison...')" class="border border-red-300 bg-white hover:bg-red-50 text-red-700 text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-colors">
+                                            Call DOWC Liaison
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Bottleneck Item 2 (Amber) -->
+                                <div class="bg-amber-50/30 border border-amber-200/70 rounded-xl p-4 transition-all hover:border-amber-300">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                                        <div class="font-bold text-sm text-amber-900">Todd Bilius — Sawmill Auto Sales</div>
+                                        <span class="text-[11px] font-bold text-amber-700">Reinsurance Retrospective Sign-off</span>
+                                    </div>
+                                    <p class="text-xs text-gray-700 leading-relaxed mb-3">
+                                        Controller requesting formal retro trust agreement verification before signing. Todd requesting executive participation on Wednesday.
+                                    </p>
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-amber-100">
+                                        <div class="text-xs font-bold text-amber-700">Meeting: Tomorrow 10:00 AM</div>
+                                        <button type="button" onclick="showToast('Invitation added to your executive calendar.')" class="border border-amber-300 bg-white hover:bg-amber-50 text-amber-800 text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-colors">
+                                            Join Call with Todd
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 2. Actionable Decisions & Approvals -->
+                            <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-blue-600"></span> ACTIONABLE DECISIONS & APPROVALS
+                                    </h3>
+                                    <span class="text-xs font-medium text-gray-400">Human Approval Required</span>
+                                </div>
+
+                                <div id="decision-card-1" class="border border-gray-200 rounded-xl p-4 bg-white hover:border-gray-300 transition-all">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+                                        <div class="font-bold text-sm text-gray-900">Holman Automotive Group (11 Rooftops NJ/PA)</div>
+                                        <span class="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded uppercase self-start sm:self-auto">Action Proposal</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mb-2">Trigger: Email from Don Ferguson confirming in-person training dates Nov 17–18</p>
+                                    <p class="text-xs text-gray-800 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100 mb-4">
+                                        <strong>Recommendation:</strong> Ship Ceramic Pro and VSC collateral materials to Mt. Laurel by Friday; lock virtual training sessions for Nov 16 with F&amp;I teams.
+                                    </p>
+                                    <div class="flex items-center justify-end gap-3 pt-2">
+                                        <button type="button" onclick="dismissDecisionCard('decision-card-1')" class="text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors px-2 py-1">
+                                            Dismiss
+                                        </button>
+                                        <button type="button" onclick="showToast('Opening modify draft window...')" class="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors">
+                                            Modify
+                                        </button>
+                                        <button type="button" onclick="approveDecisionCard('decision-card-1', 'Holman Automotive Group')" class="bg-gray-900 hover:bg-black text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors">
+                                            Approve &amp; Notify Rep
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 3. What Changed This Week -->
+                            <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+                                <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">WHAT CHANGED THIS WEEK?</h3>
+                                
+                                <div class="divide-y divide-gray-100 text-sm">
+                                    <div class="py-3 flex justify-between items-center gap-4">
+                                        <div>
+                                            <div class="font-medium text-gray-900 text-xs sm:text-sm">
+                                                Classic Hyundai of Sherman moved to <span class="bg-purple-100 text-purple-700 text-[11px] font-bold px-2 py-0.5 rounded border border-purple-200">Proposal / Review</span>
+                                            </div>
+                                            <div class="text-[11px] text-gray-400 mt-0.5">By Michael Ballero • Oct 27</div>
+                                        </div>
+                                        <div class="text-xs font-mono text-gray-500 whitespace-nowrap">3 Rooftops</div>
+                                    </div>
+
+                                    <div class="py-3 flex justify-between items-center gap-4">
+                                        <div>
+                                            <div class="font-medium text-gray-900 text-xs sm:text-sm">Independent Agency Group onboarded to active contract intake</div>
+                                            <div class="text-[11px] text-gray-400 mt-0.5">By Jason Scott • Oct 23</div>
+                                        </div>
+                                        <span class="text-xs font-bold text-green-600 whitespace-nowrap">Active Billing</span>
+                                    </div>
+
+                                    <div class="py-3 flex justify-between items-center gap-4">
+                                        <div>
+                                            <div class="font-medium text-gray-900 text-xs sm:text-sm">ALM Automotive &amp; First Choice scheduled for on-site visit</div>
+                                            <div class="text-[11px] text-gray-400 mt-0.5">By Kevin Houk • Oct 28</div>
+                                        </div>
+                                        <span class="text-xs font-bold text-blue-600 whitespace-nowrap">In-Store Demo</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT COLUMN (1 Col Wide) -->
+                        <div class="space-y-6">
+                            
+                            <!-- 1. Top 5 Strategic Opportunities -->
+                            <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+                                <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">TOP 5 STRATEGIC OPPORTUNITIES</h3>
+
+                                <div class="space-y-4 divide-y divide-gray-100 text-xs">
+                                    <!-- Opp 1 -->
+                                    <div class="pt-3 first:pt-0">
+                                        <div class="flex justify-between items-start font-bold text-sm text-gray-900 mb-0.5">
+                                            <span>Holman Automotive Group</span>
+                                            <span class="text-blue-800 font-semibold text-xs whitespace-nowrap">11 Stores</span>
+                                        </div>
+                                        <div class="text-gray-500 text-[11px] mb-1">Products: VSC, Service Training, Ceramic Pro</div>
+                                        <div class="text-green-700 font-semibold text-[11px]">Stage: Launching Nov 16–18</div>
+                                    </div>
+
+                                    <!-- Opp 2 -->
+                                    <div class="pt-3">
+                                        <div class="flex justify-between items-start font-bold text-sm text-gray-900 mb-0.5">
+                                            <span>ALM Automotive Group</span>
+                                            <span class="text-blue-800 font-semibold text-xs whitespace-nowrap">8 Stores</span>
+                                        </div>
+                                        <div class="text-gray-500 text-[11px] mb-1">Products: EV Warranty Bundles, VSC</div>
+                                        <div class="text-blue-600 font-semibold text-[11px]">Stage: In-Store Store Demos (K. Houk)</div>
+                                    </div>
+
+                                    <!-- Opp 3 -->
+                                    <div class="pt-3">
+                                        <div class="flex justify-between items-start font-bold text-sm text-gray-900 mb-0.5">
+                                            <span>Baywatch Tech Dealership Rollout</span>
+                                            <span class="text-blue-800 font-semibold text-xs whitespace-nowrap">Target 600 Roofs</span>
+                                        </div>
+                                        <div class="text-gray-500 text-[11px] mb-1">Partnership: Dealerwing / NADA 2027 Pipeline</div>
+                                        <div class="text-purple-600 font-semibold text-[11px]">Stage: Economics &amp; Pilot Validation</div>
+                                    </div>
+
+                                    <!-- Opp 4 -->
+                                    <div class="pt-3">
+                                        <div class="flex justify-between items-start font-bold text-sm text-gray-900 mb-0.5">
+                                            <span>Holiday Automotive Group</span>
+                                            <span class="text-blue-800 font-semibold text-xs whitespace-nowrap">4 Stores</span>
+                                        </div>
+                                        <div class="text-gray-500 text-[11px] mb-1">Products: DOWC Reinsurance Structuring</div>
+                                        <div class="text-amber-700 font-semibold text-[11px]">Stage: Reinsurance Audit (M. Ballero)</div>
+                                    </div>
+
+                                    <!-- Opp 5 -->
+                                    <div class="pt-3">
+                                        <div class="flex justify-between items-start font-bold text-sm text-gray-900 mb-0.5">
+                                            <span>Sawmill Auto Sales</span>
+                                            <span class="text-blue-800 font-semibold text-xs whitespace-nowrap">1 Independent</span>
+                                        </div>
+                                        <div class="text-gray-500 text-[11px] mb-1">Products: DOWC Retro Pool, GAP</div>
+                                        <div class="text-gray-600 font-semibold text-[11px]">Stage: Controller Signoff (T. Bilius)</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 2. Overdue Follow-ups -->
+                            <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">OVERDUE FOLLOW-UPS</h3>
+                                    <span class="text-[10px] font-bold text-red-600 tracking-wider">REQUIRES AUDIT</span>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="bg-gray-50 border border-gray-200/80 rounded-xl p-3.5 text-xs">
+                                        <div class="font-bold text-gray-900 mb-1">Jose Matos — 5 Stalled Follow-ups</div>
+                                        <p class="text-gray-500 text-[11px] leading-relaxed">
+                                            Last touch recorded 12 days ago. No prospect meetings booked for current reporting week.
+                                        </p>
+                                    </div>
+
+                                    <div class="bg-gray-50 border border-gray-200/80 rounded-xl p-3.5 text-xs">
+                                        <div class="font-bold text-gray-900 mb-1">Ceramic Pro Warranty Verification</div>
+                                        <p class="text-gray-500 text-[11px] leading-relaxed">
+                                            Backdated claim (effective 10/7/26) pending audit clearance with Dan.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
                 <!-- PERFORMANCE METRICS VIEW -->
                 <div id="view-performance" class="view-panel hidden fade-in space-y-6">
                     <div class="flex justify-between items-end">
