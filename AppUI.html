@@ -122,8 +122,8 @@
         document.querySelectorAll('[class*="nav-group-"]').forEach(el => el.classList.add('hidden'));
         document.querySelectorAll(`.nav-group-${currentUser.role}`).forEach(el => el.classList.remove('hidden'));
 
-        if(currentUser.role === 'rep' || currentUser.role === 'manager') nav('dashboard');
-        else if(currentUser.role === 'executive') nav('exec');
+        if(currentUser.role === 'rep') nav('dashboard');
+        else if(currentUser.role === 'manager' || currentUser.role === 'executive') nav('desk');
         else if(currentUser.role === 'finance') nav('finance');
         else if(currentUser.role === 'admin') nav('admin');
 
@@ -148,7 +148,9 @@
         document.getElementById(`view-${target}`).classList.remove('hidden');
         document.getElementById('mobile-menu').classList.add('hidden');
 
-        if (target === 'performance') {
+        if (target === 'desk') {
+            document.getElementById('page-title').innerText = "Executive Decision Center";
+        } else if (target === 'performance') {
             document.getElementById('page-title').innerText = "Game Day";
             renderPerformance();
         } else if (target === 'dashboard') {
@@ -2132,5 +2134,23 @@ const scheduledActs = db.activities.filter(a => {
                 openDealershipDetail(id);
             }
         }
+    }
+
+    function approveDecisionCard(cardId, accountName) {
+        const el = document.getElementById(cardId);
+        if (el) {
+            el.classList.add('opacity-50', 'pointer-events-none');
+            setTimeout(() => el.remove(), 400);
+        }
+        showToast(`Approved recommendation for ${accountName}. Rep notified!`);
+    }
+
+    function dismissDecisionCard(cardId) {
+        const el = document.getElementById(cardId);
+        if (el) {
+            el.classList.add('opacity-50', 'pointer-events-none');
+            setTimeout(() => el.remove(), 400);
+        }
+        showToast("Proposal dismissed.");
     }
 </script>
