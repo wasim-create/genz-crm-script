@@ -1283,8 +1283,15 @@ const scheduledActs = db.activities.filter(a => {
         }
         document.getElementById('form-sales-stop').reset();
         
-        const today = new Date();
-        document.getElementById('stop-next-date').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        let nextWorkDay = new Date();
+        nextWorkDay.setDate(nextWorkDay.getDate() + 1);
+        if (nextWorkDay.getDay() === 6) { // If Saturday, add 2 days
+            nextWorkDay.setDate(nextWorkDay.getDate() + 2);
+        } else if (nextWorkDay.getDay() === 0) { // If Sunday, add 1 day
+            nextWorkDay.setDate(nextWorkDay.getDate() + 1);
+        }
+        
+        document.getElementById('stop-next-date').value = `${nextWorkDay.getFullYear()}-${String(nextWorkDay.getMonth() + 1).padStart(2, '0')}-${String(nextWorkDay.getDate()).padStart(2, '0')}`;
         
         toggleInPersonTools();
 
@@ -1854,7 +1861,7 @@ const scheduledActs = db.activities.filter(a => {
         if (currentUser.role === 'finance' && p && p.meetingCompleted && !p.payoutApproved) {
             actionSlot.innerHTML = `
                 <button type="button" onclick="openFinanceApproveModal('${p.id}')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition-colors">
-                    <i class="fa-solid fa-money-bill-wave mr-1"></i> Authorize Payout ($250)
+                    <i class="fa-solid fa-money-bill-wave mr-1"></i> Authorize Payout
                 </button>
             `;
         } else {
