@@ -28,10 +28,6 @@
     }
 
     function getRealStatus(d) {
-        if (d.status === 'Handed Off') {
-            const p = db.payouts.find(x => x.dealershipId === d.id);
-            if (p) return p.meetingCompleted ? 'Handoff Confirmed' : 'Handoff In Process';
-        }
         const today = new Date();
         if ((d.status === 'Uncontacted' || d.status === 'In Progress') && d.lastTouchpointDate) {
             if (daysBetween(d.lastTouchpointDate, today) > 60) return 'Auto-Parked';
@@ -41,7 +37,6 @@
 
     function getStageForDeal(d) {
         const realStatus = getRealStatus(d);
-        if (realStatus.includes('Handoff') || d.status === 'Handed Off') return 'Handed Off';
         if (realStatus === 'Parked' || realStatus === 'Auto-Parked') return 'Parked';
         return realStatus;
     }
@@ -597,7 +592,8 @@ const scheduledActs = db.activities.filter(a => {
         const allStages = [
             { id: 'Uncontacted', label: 'Uncontacted', badgeColor: 'bg-gray-100 text-gray-700', border: 'border-gray-200' },
             { id: 'In Progress', label: 'In Progress', badgeColor: 'bg-blue-100 text-blue-700', border: 'border-blue-200' },
-            { id: 'Handed Off', label: 'Handed Off', badgeColor: 'bg-yellow-100 text-yellow-800', border: 'border-yellow-200' },
+            { id: 'Handoff Pending', label: 'Handoff Pending', badgeColor: 'bg-yellow-100 text-yellow-800', border: 'border-yellow-200' },
+            { id: 'Closing', label: 'Closing (Exec)', badgeColor: 'bg-orange-100 text-orange-800', border: 'border-orange-200' },
             { id: 'Onboarding', label: 'Onboarding', badgeColor: 'bg-purple-100 text-purple-700', border: 'border-purple-200' },
             { id: 'Client', label: 'Client (Won)', badgeColor: 'bg-green-100 text-green-700', border: 'border-green-200' },
             { id: 'Parked', label: 'Parked', badgeColor: 'bg-red-100 text-red-700', border: 'border-red-200' }
@@ -1080,11 +1076,12 @@ const scheduledActs = db.activities.filter(a => {
             actionsContainer.innerHTML += `<button type="button" onclick="claimDealership('${d.id}')" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-thumbtack"></i> Claim Dealership</button>`;
         } else if (currentUser.role === 'rep') {
             if (d.ownerId !== currentUser.id) {
-                // Read-only state for reps when manager has it
                 actionsContainer.innerHTML += `<div class="bg-amber-50 text-amber-800 px-4 py-2 rounded-lg text-sm font-semibold border border-amber-200 mr-2"><i class="fa-solid fa-lock mr-1"></i> Under Manager Review</div>`;
                 actionsContainer.innerHTML += `<button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-timeline"></i> View Audit Trail</button>`;
+                if (d.status === 'Handoff Pending') {
+                    actionsContainer.innerHTML += `<button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-xmark"></i> Cancel Handoff</button>`;
+                }
             } else {
-                // Active ownership state for reps
                 const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
                 actionsContainer.innerHTML += `<button type="button" onclick="openScheduleModal()" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-regular ${pendingAct ? 'fa-calendar-check' : 'fa-calendar-plus'}"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}</button>`;
                 actionsContainer.innerHTML += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
@@ -1096,14 +1093,15 @@ const scheduledActs = db.activities.filter(a => {
             }
         } else if (currentUser.role === 'finance' || currentUser.role === 'manager' || currentUser.role === 'executive') {
             actionsContainer.innerHTML += `<button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-timeline"></i> View Audit Trail</button>`;
-            
             if (currentUser.role === 'manager' || currentUser.role === 'executive') {
                 if (d.ownerId === currentUser.id) {
                     actionsContainer.innerHTML += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
-                }
-                if (d.status === 'Handed Off' && d.ownerId === currentUser.id) {
-                    actionsContainer.innerHTML += `<button type="button" onclick="promptReassign('${d.id}', true)" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Start Sign-Up</button>`;
-                } else {
+                    if (d.status === 'Handoff Pending') {
+                        const p = db.payouts.find(x => x.dealershipId === d.id && !x.meetingCompleted);
+                        if (p) actionsContainer.innerHTML += `<button type="button" onclick="completeHandoffMeeting('${p.id}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-handshake-simple"></i> Accept Hand-off</button>`;
+                    } else if (d.status === 'Closing') {
+                        actionsContainer.innerHTML += `<button type="button" onclick="promptReassign('${d.id}', true)" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Start Sign-Up</button>`;
+                    }
                     actionsContainer.innerHTML += `<button type="button" onclick="promptReassign('${id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-user-gear"></i> Reassign</button>`;
                 }
             }
@@ -1185,8 +1183,10 @@ const scheduledActs = db.activities.filter(a => {
             actionsContainer.innerHTML += `<button type="button" onclick="claimDealership('${d.id}'); closeModal('modal-quick-detail');" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-thumbtack"></i> Claim Dealership</button>`;
         } else if (currentUser.role === 'rep') {
             if (d.ownerId !== currentUser.id) {
-                // Read-only state for reps when manager has it
                 actionsContainer.innerHTML += `<div class="bg-amber-50 text-amber-800 px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-200"><i class="fa-solid fa-lock mr-1"></i> Manager Review</div>`;
+                if (d.status === 'Handoff Pending') {
+                    actionsContainer.innerHTML += `<button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg font-medium text-xs flex items-center gap-1.5 transition-colors"><i class="fa-solid fa-xmark"></i> Cancel</button>`;
+                }
             } else {
                 const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
                 let btns = `<div class="flex items-center gap-2 flex-wrap">`;
@@ -1202,14 +1202,15 @@ const scheduledActs = db.activities.filter(a => {
         } else if (currentUser.role === 'manager' || currentUser.role === 'executive' || currentUser.role === 'finance') {
             let btns = `<div class="flex items-center gap-2 flex-wrap">`;
             btns += `<button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-timeline"></i> View Audit Trail</button>`;
-            
             if (currentUser.role === 'manager' || currentUser.role === 'executive') {
                 if (d.ownerId === currentUser.id) {
                     btns += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
-                }
-                if (d.status === 'Handed Off' && d.ownerId === currentUser.id) {
-                    btns += `<button type="button" onclick="promptReassign('${d.id}', true)" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Start Sign-Up</button>`;
-                } else {
+                    if (d.status === 'Handoff Pending') {
+                        const p = db.payouts.find(x => x.dealershipId === d.id && !x.meetingCompleted);
+                        if (p) btns += `<button type="button" onclick="completeHandoffMeeting('${p.id}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-handshake-simple"></i> Accept</button>`;
+                    } else if (d.status === 'Closing') {
+                        btns += `<button type="button" onclick="promptReassign('${d.id}', true)" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Sign-Up</button>`;
+                    }
                     btns += `<button type="button" onclick="promptReassign('${id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-user-gear"></i> Reassign</button>`;
                 }
             }
@@ -1634,9 +1635,9 @@ const scheduledActs = db.activities.filter(a => {
         if(!closerId) return showToast("Please select a closer.", "error");
 
         const d = db.dealerships.find(x => x.id === activeDealershipId);
-        d.status = 'Handed Off';
-        d.scoutId = d.ownerId; // Retain original rep
-        d.ownerId = closerId;  // Transfer to manager
+        d.status = 'Handoff Pending';
+        d.scoutId = d.ownerId; // Remember who found it
+        d.ownerId = closerId;  // Transfer ownership to manager
         
         db.payouts.push({
             id: generateId('p'), dealershipId: d.id, dealershipName: d.dealershipName,
@@ -1647,8 +1648,7 @@ const scheduledActs = db.activities.filter(a => {
         db.activities.push({
             id: generateId('a'), repId: currentUser.id, dealershipId: d.id, contactId: null,
             activityType: 'System Log', communicationType: 'System', status: 'completed',
-            completedAt: new Date().toISOString(), notes: `Handoff initiated to executive.`, 
-            nextActionDate: null
+            completedAt: new Date().toISOString(), notes: `Handoff initiated to executive.`, nextActionDate: null
         });
 
         closeModal('modal-handoff');
@@ -1667,6 +1667,7 @@ const scheduledActs = db.activities.filter(a => {
 
         db.payouts = db.payouts.filter(p => !(p.dealershipId === id && !p.meetingCompleted));
         d.status = 'In Progress';
+        d.ownerId = d.scoutId; // Return ownership to the rep
         d.lastTouchpointDate = new Date().toISOString(); 
         
         showToast("Handoff cancelled. Account is back in progress.");
@@ -1675,10 +1676,24 @@ const scheduledActs = db.activities.filter(a => {
         if (currentView === 'dealerships') renderDealerships();
         if (currentView === 'dashboard') renderDashboard();
         
-        if (!document.getElementById('modal-quick-detail').classList.contains('hidden')) {
-            openQuickDealershipDetail(id);
-        } else if (!document.getElementById('view-dealership-detail').classList.contains('hidden')) {
-            openDealershipDetail(id);
+        if (!document.getElementById('modal-quick-detail').classList.contains('hidden')) openQuickDealershipDetail(id);
+        else if (!document.getElementById('view-dealership-detail').classList.contains('hidden')) openDealershipDetail(id);
+    }
+
+    function completeHandoffMeeting(payoutId) {
+        const p = db.payouts.find(x => x.id === payoutId);
+        if (p) {
+            p.meetingCompleted = true;
+            const d = db.dealerships.find(x => x.id === p.dealershipId);
+            if (d) {
+                d.status = 'Closing'; // Move to active manager negotiation
+                d.lastTouchpointDate = new Date().toISOString();
+            }
+            showToast("Hand-off accepted. Deal moved to Closing phase!");
+            if (currentView === 'exec') renderExecutive();
+            if (currentView === 'pipeline') renderPipeline();
+            if (!document.getElementById('modal-quick-detail').classList.contains('hidden')) openQuickDealershipDetail(d.id);
+            else if (!document.getElementById('view-dealership-detail').classList.contains('hidden')) openDealershipDetail(d.id);
         }
     }
 
@@ -1784,20 +1799,7 @@ const scheduledActs = db.activities.filter(a => {
         }
     }
 
-    function completeHandoffMeeting(payoutId) {
-        const p = db.payouts.find(x => x.id === payoutId);
-        if (p) {
-            p.meetingCompleted = true;
-            const d = db.dealerships.find(x => x.id === p.dealershipId);
-            if (d) {
-                d.status = 'Onboarding';
-                d.lastTouchpointDate = new Date().toISOString();
-            }
-            showToast("Handoff meeting marked as complete!");
-            if (currentView === 'exec') renderExecutive();
-        }
-    }
-
+   
     function renderFinance() {
         const payoutsBody = document.getElementById('finance-payouts-body');
         if (payoutsBody) {
