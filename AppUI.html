@@ -801,34 +801,70 @@ const scheduledActs = db.activities.filter(a => {
         });
     }
 
+    let pendingPipelineMove = null;
+
     function moveDealToStage(draggedDeal, targetStageId, targetDeal) {
         const oldStatus = getRealStatus(draggedDeal);
 
-        if (targetStageId === 'In Progress' && (oldStatus === 'Uncontacted' || oldStatus === 'Parked' || oldStatus === 'Auto-Parked')) {
-            activeDealershipId = draggedDeal.id;
-            showToast("Please schedule a visit or log a sales stop to move to In Progress.", "error");
-            openQuickDealershipDetail(draggedDeal.id);
+        // 1. Rep Restrictions for Handoff Pending
+        if (oldStatus === 'Handoff Pending' && currentUser.role === 'rep') {
+            if (targetStageId !== 'In Progress') {
+                return showToast("As a rep, you can only drag this back to 'In Progress' to cancel the handoff.", "error");
+            }
+            // Dragging back to In Progress cancels the handoff
+            cancelHandoff(draggedDeal.id);
             return;
         }
 
-        if (targetStageId === 'Handed Off' && oldStatus !== 'Handed Off' && !oldStatus.includes('Handoff')) {
-            if (oldStatus === 'Uncontacted') {
-                return showToast("Cannot hand off an Uncontacted account. Please log a sales stop first.", "error");
-            }
+        // 2. Specific UI Triggers based on target stage
+        if (targetStageId === 'Handoff Pending') {
+            if (oldStatus === 'Uncontacted') return showToast("Cannot hand off an Uncontacted account.", "error");
             activeDealershipId = draggedDeal.id;
             initiateHandoff();
             return; 
         }
 
-        if (targetStageId === 'Parked' && oldStatus !== 'Parked' && oldStatus !== 'Auto-Parked') {
+        if (targetStageId === 'Parked') {
             promptParkDealership(draggedDeal.id);
             return;
         }
 
-        draggedDeal.status = targetStageId;
-        reorderDealsInStage(targetStageId, draggedDeal, targetDeal);
+        // 3. Catch-all for generic moves (Requires a Log Stop)
+        pendingPipelineMove = { deal: draggedDeal, targetStageId: targetStageId, targetDeal: targetDeal };
+        
+        document.getElementById('pipeline-move-title').innerHTML = `<i class="fa-solid fa-truck-fast text-brand-600 mr-2"></i> Move to ${targetStageId}`;
+        document.getElementById('pipeline-move-note').value = '';
+        document.getElementById('modal-pipeline-move').classList.remove('hidden');
+    }
+
+    function executePipelineMove() {
+        if (!pendingPipelineMove) return;
+        const note = document.getElementById('pipeline-move-note')?.value.trim();
+        if (!note) return showToast("You must provide a log note to move stages.", "error");
+
+        const { deal, targetStageId, targetDeal } = pendingPipelineMove;
+        const oldStatus = deal.status;
+        
+        deal.status = targetStageId;
+        deal.lastTouchpointDate = new Date().toISOString();
+
+        // If moving straight to Onboarding, trigger the payout completion
+        if (targetStageId === 'Onboarding') {
+            const p = db.payouts.find(x => x.dealershipId === deal.id && !x.meetingCompleted);
+            if (p) p.meetingCompleted = true;
+        }
+        
+        db.activities.push({
+            id: generateId('a'), repId: currentUser.id, dealershipId: deal.id, contactId: null,
+            activityType: 'Pipeline Stage Change', communicationType: 'System', status: 'completed',
+            completedAt: new Date().toISOString(), notes: `Moved from ${oldStatus} to ${targetStageId} via Drag & Drop. Log: ${note}`, nextActionDate: null
+        });
+
+        reorderDealsInStage(targetStageId, deal, targetDeal);
+        closeModal('modal-pipeline-move');
         renderPipeline();
-        showToast(`Moved "${draggedDeal.dealershipName}" to ${targetStageId}`);
+        showToast(`Moved successfully to ${targetStageId}`);
+        pendingPipelineMove = null;
     }
 
     function resetPipelineFilters() {
