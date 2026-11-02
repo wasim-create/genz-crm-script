@@ -1065,37 +1065,48 @@ const scheduledActs = db.activities.filter(a => {
         actionsContainer.innerHTML = '';
         
         if (d.ownerId === null) {
-            actionsContainer.innerHTML += `<button type="button" onclick="claimDealership('${d.id}')" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-thumbtack"></i> Claim Dealership</button>`;
+            actionsContainer.innerHTML += `<button type="button" onclick="claimDealership('${d.id}')" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-thumbtack"></i> Claim Dealership</button>`;
         } else if (currentUser.role === 'rep') {
-            if (d.status !== 'Handed Off') {
-                const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
-                
-                if(pendingAct) {
-                    actionsContainer.innerHTML += `<button type="button" onclick="openScheduleModal()" class="bg-brand-50 border border-brand-200 hover:bg-brand-100 text-brand-700 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-regular fa-calendar-check"></i> Scheduled: ${formatDate(pendingAct.plannedDate)}</button>`;
-                } else {
-                    actionsContainer.innerHTML += `<button type="button" onclick="openScheduleModal()" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-regular fa-calendar-plus"></i> Schedule Visit</button>`;
-                }
-                
-                actionsContainer.innerHTML += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
-                
-                if (d.status === 'In Progress') {
-                    actionsContainer.innerHTML += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
-                }
-                
-                if (d.status === 'In Progress' || d.status === 'Uncontacted') {
-                    actionsContainer.innerHTML += `<button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-ban"></i> Park Account</button>`;
-                }
-            } else {
+            const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
+            
+            // Standard Stops & Scheduling
+            actionsContainer.innerHTML += `<button type="button" onclick="openScheduleModal()" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-regular ${pendingAct ? 'fa-calendar-check' : 'fa-calendar-plus'}"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}</button>`;
+            actionsContainer.innerHTML += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
+
+            // Stage Progressions
+            if (d.status === 'In Progress' || d.status === 'Handed Off') {
+                actionsContainer.innerHTML += `<button type="button" onclick="progressDeal('${d.id}', 'Onboarding')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Sign Contract</button>`;
+            }
+            if (d.status === 'Onboarding') {
+                actionsContainer.innerHTML += `<button type="button" onclick="progressDeal('${d.id}', 'Client')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-check-double"></i> Finalize Onboarding</button>`;
+            }
+            if (d.status === 'Client') {
+                actionsContainer.innerHTML += `<button type="button" onclick="quickRestock('${d.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-key"></i> Quick Restock</button>`;
+            }
+
+            // Handoff & Park overrides
+            if (d.status === 'In Progress') {
+                actionsContainer.innerHTML += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
+            }
+            if (d.status === 'Handed Off') {
                 const p = db.payouts.find(x => x.dealershipId === d.id);
                 if (p && !p.meetingCompleted) {
-                    actionsContainer.innerHTML += `<button type="button" disabled class="bg-yellow-50 text-yellow-700 border border-yellow-200 px-6 py-2 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed"><i class="fa-solid fa-hourglass-half"></i> Handoff In Process</button>`;
-                    actionsContainer.innerHTML += `<button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-6 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"><i class="fa-solid fa-xmark"></i> Cancel Handoff</button>`;
-                } else {
-                    actionsContainer.innerHTML += `<button type="button" disabled class="bg-gray-50 text-green-700 border border-green-200 px-6 py-2 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed"><i class="fa-solid fa-check-double"></i> Handoff Confirmed</button>`;
+                    actionsContainer.innerHTML += `<button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-xmark"></i> Cancel Handoff</button>`;
                 }
             }
+            if (d.status === 'In Progress' || d.status === 'Uncontacted') {
+                actionsContainer.innerHTML += `<button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-ban"></i> Park Account</button>`;
+            }
+
         } else if (currentUser.role === 'finance' || currentUser.role === 'manager' || currentUser.role === 'executive') {
-            actionsContainer.innerHTML += `<button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-timeline"></i> View Audit Trail</button>`;
+            actionsContainer.innerHTML += `<button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-timeline"></i> View Audit Trail</button>`;
+            
+            if (currentUser.role === 'manager' || currentUser.role === 'executive') {
+                actionsContainer.innerHTML += `<button type="button" onclick="promptReassign('${id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-user-gear"></i> Reassign</button>`;
+                if (d.status === 'In Progress' || d.status === 'Handed Off') {
+                    actionsContainer.innerHTML += `<button type="button" onclick="progressDeal('${d.id}', 'Onboarding')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Close Deal (Sign)</button>`;
+                }
+            }
         }
 
         renderContacts(id, 'detail-contacts-list');
@@ -1169,59 +1180,42 @@ const scheduledActs = db.activities.filter(a => {
         const isSuggesting = !document.getElementById('modal-smart-suggestions').classList.contains('hidden');
 
         if (isSuggesting && currentView === 'dashboard') {
-            actionsContainer.innerHTML += `
-                <button type="button" onclick="selectSuggestionForItinerary('${d.id}'); closeModal('modal-quick-detail');" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Insert into Planner
-                </button>
-            `;
+            actionsContainer.innerHTML += `<button type="button" onclick="selectSuggestionForItinerary('${d.id}'); closeModal('modal-quick-detail');" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-plus"></i> Insert into Planner</button>`;
         } else if (d.ownerId === null) {
-            actionsContainer.innerHTML += `
-                <button type="button" onclick="claimDealership('${d.id}'); closeModal('modal-quick-detail');" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-thumbtack"></i> Claim Dealership
-                </button>
-            `;
+            actionsContainer.innerHTML += `<button type="button" onclick="claimDealership('${d.id}'); closeModal('modal-quick-detail');" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-thumbtack"></i> Claim Dealership</button>`;
         } else if (currentUser.role === 'rep') {
-            if (d.status !== 'Handed Off') {
-                const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
-                actionsContainer.innerHTML += `
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <button type="button" onclick="openScheduleModal()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-lg font-medium text-xs shadow-sm flex items-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-regular fa-calendar-plus text-brand-600"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}
-                        </button>
-                        <button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-solid fa-street-view"></i> Log Stop
-                        </button>
-                        ${d.status === 'In Progress' ? `
-                        <button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-solid fa-handshake"></i> Handoff
-                        </button>
-                        ` : ''}
-                        ${(getRealStatus(d) !== 'Parked' && getRealStatus(d) !== 'Auto-Parked') ? `
-                        <button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-solid fa-ban"></i> Park
-                        </button>
-                        ` : ''}
-                    </div>
-                `;
-            } else {
+            const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
+            let btns = `<div class="flex items-center gap-2 flex-wrap">`;
+            
+            btns += `<button type="button" onclick="openScheduleModal()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-lg font-medium text-xs shadow-sm flex items-center gap-1.5 whitespace-nowrap"><i class="fa-regular ${pendingAct ? 'fa-calendar-check' : 'fa-calendar-plus'} text-brand-600"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}</button>`;
+            btns += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
+
+            if (d.status === 'In Progress' || d.status === 'Handed Off') btns += `<button type="button" onclick="progressDeal('${d.id}', 'Onboarding')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Sign Contract</button>`;
+            if (d.status === 'Onboarding') btns += `<button type="button" onclick="progressDeal('${d.id}', 'Client')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-check-double"></i> Finalize Onboard</button>`;
+            if (d.status === 'Client') btns += `<button type="button" onclick="quickRestock('${d.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-key"></i> Quick Restock</button>`;
+
+            if (d.status === 'In Progress') btns += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
+            if (d.status === 'Handed Off') {
                 const p = db.payouts.find(x => x.dealershipId === d.id);
-                if (p && !p.meetingCompleted) {
-                    actionsContainer.innerHTML += `
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <button type="button" disabled class="bg-yellow-50 text-yellow-700 border border-yellow-200 px-3 py-2 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 cursor-not-allowed"><i class="fa-solid fa-hourglass-half"></i> Handoff In Process</button>
-                            <button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-2 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"><i class="fa-solid fa-xmark"></i> Cancel</button>
-                        </div>
-                    `;
-                } else {
-                    actionsContainer.innerHTML += `<button type="button" disabled class="bg-gray-50 text-green-700 border border-green-200 px-4 py-2 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 cursor-not-allowed"><i class="fa-solid fa-check-double"></i> Handoff Confirmed</button>`;
+                if (p && !p.meetingCompleted) btns += `<button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-2 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"><i class="fa-solid fa-xmark"></i> Cancel</button>`;
+            }
+            if (d.status === 'In Progress' || d.status === 'Uncontacted') btns += `<button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-ban"></i> Park</button>`;
+            
+            btns += `</div>`;
+            actionsContainer.innerHTML += btns;
+
+        } else if (currentUser.role === 'manager' || currentUser.role === 'executive' || currentUser.role === 'finance') {
+            let btns = `<div class="flex items-center gap-2 flex-wrap">`;
+            btns += `<button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-timeline"></i> View Audit Trail</button>`;
+            
+            if (currentUser.role === 'manager' || currentUser.role === 'executive') {
+                btns += `<button type="button" onclick="promptReassign('${id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-user-gear"></i> Reassign</button>`;
+                if (d.status === 'In Progress' || d.status === 'Handed Off') {
+                    btns += `<button type="button" onclick="progressDeal('${d.id}', 'Onboarding')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Close Deal</button>`;
                 }
             }
-        } else {
-             actionsContainer.innerHTML += `
-                <button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium text-sm shadow-sm transition-colors flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-timeline"></i> View Audit Trail
-                </button>
-            `;
+            btns += `</div>`;
+            actionsContainer.innerHTML += btns;
         }
 
         renderContacts(id, 'qd-contacts-list');
@@ -1308,12 +1302,36 @@ const scheduledActs = db.activities.filter(a => {
     }
 
     function openSalesStopWizard() {
-        const select = document.getElementById('stop-contact');
-        if(select) {
-            select.innerHTML = '<option value="">-- Select Contact --</option>';
+        const d = db.dealerships.find(x => x.id === activeDealershipId);
+        if (!d) return;
+
+        const contactSelect = document.getElementById('stop-contact');
+        if(contactSelect) {
+            contactSelect.innerHTML = '<option value="">-- Select Contact --</option>';
             db.contacts.filter(c => c.dealershipId === activeDealershipId).forEach(c => {
-                select.innerHTML += `<option value="${c.id}">${c.firstName} ${c.lastName} (${c.jobTitle})</option>`;
+                contactSelect.innerHTML += `<option value="${c.id}">${c.firstName} ${c.lastName} (${c.jobTitle})</option>`;
             });
+        }
+
+        const purposeSelect = document.getElementById('stop-purpose');
+        if (purposeSelect) {
+            purposeSelect.innerHTML = '';
+            if (d.status === 'Onboarding') {
+                purposeSelect.innerHTML += `<option value="Contract Signing">Contract Signing</option>
+                                            <option value="System Setup & Install">System Setup & Install</option>
+                                            <option value="Staff Training">Staff Training</option>
+                                            <option value="Support / Issue Resolution">Support / Issue Resolution</option>`;
+            } else if (d.status === 'Client') {
+                purposeSelect.innerHTML += `<option value="Account Review / QBR">Account Review / QBR</option>
+                                            <option value="New Product Pitch (Upsell)">New Product Pitch (Upsell)</option>
+                                            <option value="Keyfetch Inventory Restock">Keyfetch Inventory Restock</option>
+                                            <option value="Support / Issue Resolution">Support / Issue Resolution</option>`;
+            } else {
+                purposeSelect.innerHTML += `<option value="Initial Discovery Pitch">Initial Discovery Pitch</option>
+                                            <option value="Follow-up Pitch">Follow-up Pitch</option>
+                                            <option value="System Demo">System Demo</option>
+                                            <option value="Closing Meeting">Closing Meeting</option>`;
+            }
         }
         document.getElementById('form-sales-stop').reset();
         
@@ -1335,6 +1353,7 @@ const scheduledActs = db.activities.filter(a => {
     function submitSalesStop() {
         const commType = document.querySelector('input[name="comm_type"]:checked')?.value || 'In-Person';
         const contactId = document.getElementById('stop-contact').value;
+        const purpose = document.getElementById('stop-purpose')?.value || 'Sales Stop';
         const notes = document.getElementById('stop-notes').value.trim();
         const nextDate = document.getElementById('stop-next-date').value;
 
@@ -1342,7 +1361,7 @@ const scheduledActs = db.activities.filter(a => {
 
         db.activities.push({
             id: generateId('a'), repId: currentUser.id, dealershipId: activeDealershipId, contactId: contactId || null,
-            activityType: 'Sales Stop', communicationType: commType, status: 'completed',
+            activityType: purpose, communicationType: commType, status: 'completed',
             completedAt: new Date().toISOString(), notes: notes, nextActionDate: nextDate || null
         });
 
@@ -1350,6 +1369,10 @@ const scheduledActs = db.activities.filter(a => {
         if (d) {
             d.lastTouchpointDate = new Date().toISOString();
             if (d.status === 'Uncontacted' || d.status === 'Parked') d.status = 'In Progress';
+            if (purpose === 'New Product Pitch (Upsell)') {
+                d.heatLevel = 'Hot';
+                showToast("Heat Level bumped to Hot for Upsell!", "success");
+            }
         }
 
         closeModal('modal-sales-stop');
@@ -2302,5 +2325,98 @@ const scheduledActs = db.activities.filter(a => {
             field.classList.add('hidden');
         }
     }
+
+    function progressDeal(id, newStatus) {
+        const d = db.dealerships.find(x => x.id === id);
+        if (!d) return;
+
+        const oldStatus = d.status;
+        d.status = newStatus;
+        d.lastTouchpointDate = new Date().toISOString();
+
+        // Auto-complete handoff if they jump straight to onboarding
+        if (newStatus === 'Onboarding') {
+            const p = db.payouts.find(x => x.dealershipId === id && !x.meetingCompleted);
+            if (p) p.meetingCompleted = true;
+            showToast(`Contract Signed! ${d.dealershipName} moved to Onboarding.`, "success");
+        } else if (newStatus === 'Client') {
+            showToast(`${d.dealershipName} is now fully onboarded as an active Client!`, "success");
+        }
+
+        db.activities.push({
+            id: generateId('a'), repId: currentUser.id, dealershipId: d.id, contactId: null,
+            activityType: 'System Log', communicationType: 'System', status: 'completed',
+            completedAt: new Date().toISOString(), notes: `Account progressed from ${oldStatus} to ${newStatus}.`, nextActionDate: null
+        });
+
+        if (currentView === 'pipeline') renderPipeline();
+        if (currentView === 'dealerships') renderDealerships();
+        if (currentView === 'clients') renderClients();
+        if (currentView === 'dashboard') renderDashboard();
+
+        if (!document.getElementById('modal-quick-detail').classList.contains('hidden')) openQuickDealershipDetail(id);
+        else if (!document.getElementById('view-dealership-detail').classList.contains('hidden')) openDealershipDetail(id);
+    }
+
+    function quickRestock(id) {
+        const d = db.dealerships.find(x => x.id === id);
+        if (!d) return;
+        
+        d.lastTouchpointDate = new Date().toISOString();
+        db.activities.push({
+            id: generateId('a'), repId: currentUser.id, dealershipId: d.id, contactId: null,
+            activityType: 'Keyfetch Inventory Restock', communicationType: 'In-Person', status: 'completed',
+            completedAt: new Date().toISOString(), notes: 'Quick Restock performed.', nextActionDate: null
+        });
+        showToast("Inventory restock logged successfully!");
+        
+        if (currentView === 'clients') renderClients();
+        if (currentView === 'dashboard') renderDashboard();
+        if (!document.getElementById('modal-quick-detail').classList.contains('hidden')) openQuickDealershipDetail(id);
+        else if (!document.getElementById('view-dealership-detail').classList.contains('hidden')) openDealershipDetail(id);
+    }
+
+    let dealershipToReassign = null;
+    function promptReassign(id) {
+        dealershipToReassign = id;
+        const select = document.getElementById('reassign-rep');
+        if (select) {
+            select.innerHTML = '<option value="">-- Select New Owner --</option>';
+            db.users.filter(u => u.role === 'rep').forEach(u => {
+                select.innerHTML += `<option value="${u.id}">${u.firstName} ${u.lastName}</option>`;
+            });
+        }
+        document.getElementById('reassign-note').value = '';
+        document.getElementById('modal-reassign').classList.remove('hidden');
+    }
+
+    function executeReassign() {
+        if (!dealershipToReassign) return;
+        const newOwnerId = document.getElementById('reassign-rep').value;
+        const note = document.getElementById('reassign-note').value.trim();
+        
+        if (!newOwnerId || !note) return showToast("Please select a rep and provide a reason.", "error");
+        
+        const d = db.dealerships.find(x => x.id === dealershipToReassign);
+        const oldOwner = db.users.find(u => u.id === d.ownerId);
+        const newOwner = db.users.find(u => u.id === newOwnerId);
+        
+        d.ownerId = newOwnerId;
+        db.activities.push({
+            id: generateId('a'), repId: currentUser.id, dealershipId: d.id, contactId: null,
+            activityType: 'System Log', communicationType: 'System', status: 'completed',
+            completedAt: new Date().toISOString(), notes: `Owner reassigned from ${oldOwner ? oldOwner.firstName : 'None'} to ${newOwner.firstName}. Reason: ${note}`, nextActionDate: null
+        });
+        
+        closeModal('modal-reassign');
+        showToast(`Account reassigned to ${newOwner.firstName}.`);
+        dealershipToReassign = null;
+        
+        if (currentView === 'pipeline') renderPipeline();
+        if (currentView === 'dealerships') renderDealerships();
+        if (!document.getElementById('modal-quick-detail').classList.contains('hidden')) closeModal('modal-quick-detail');
+        else if (!document.getElementById('view-dealership-detail').classList.contains('hidden')) openDealershipDetail(d.id);
+    }
+
     
 </script>
