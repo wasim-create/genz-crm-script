@@ -1516,30 +1516,6 @@ const scheduledActs = db.activities.filter(a => {
         
         document.getElementById('modal-add-prospect').classList.remove('hidden');
     }
-        if (gf) {
-            gf.classList.add('hidden');
-            gf.classList.remove('grid');
-        }
-        
-        if (dealershipId && typeof dealershipId === 'string') {
-            const d = db.dealerships.find(x => x.id === dealershipId);
-            if (d) {
-                document.getElementById('modal-prospect-title').innerHTML = '<i class="fa-solid fa-pen-to-square text-brand-600 mr-2"></i> Edit Dealership';
-                document.getElementById('ap-radar-banner')?.classList.add('hidden');
-                document.getElementById('ap-id').value = d.id;
-                document.getElementById('ap-name').value = d.dealershipName;
-                document.getElementById('ap-phone').value = d.phone || '';
-                document.getElementById('ap-address').value = d.address || '';
-                document.getElementById('ap-type').value = d.dealershipType;
-                document.getElementById('ap-cars').value = d.usedCarsOnLot || '';
-            }
-        } else {
-            document.getElementById('modal-prospect-title').innerHTML = '<i class="fa-solid fa-building-circle-check text-brand-600 mr-2"></i> Add New Prospect';
-            document.getElementById('ap-radar-banner')?.classList.remove('hidden');
-            document.getElementById('ap-id').value = '';
-        }
-        
-        document.getElementById('modal-add-prospect').classList.remove('hidden');
     
 
     function toggleGroupFields(select) {
