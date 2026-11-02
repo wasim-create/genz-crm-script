@@ -643,20 +643,23 @@ const scheduledActs = db.activities.filter(a => {
                     const ownerUser = db.users.find(u => u.id === d.ownerId);
                     let heatColor = d.heatLevel === 'Hot' ? 'bg-red-100 text-red-700' : (d.heatLevel === 'Warm' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-700');
 
+                    // Check if it's a read-only view for the rep
+                    const isManagerOwned = (currentUser.role === 'rep' && d.ownerId !== currentUser.id && d.scoutId === currentUser.id);
+
                     colHtml += `
                         <div id="pipeline-card-${d.id}"
-                             draggable="true"
-                             ondragstart="handlePipelineCardDragStart(event, '${d.id}')"
-                             ondragend="handlePipelineCardDragEnd(event, '${d.id}')"
+                             ${isManagerOwned ? '' : `draggable="true" ondragstart="handlePipelineCardDragStart(event, '${d.id}')" ondragend="handlePipelineCardDragEnd(event, '${d.id}')"`}
                              ondragover="handlePipelineCardDragOver(event)"
                              ondragleave="handlePipelineCardDragLeave(event)"
                              ondrop="handlePipelineCardDrop(event, '${d.id}', '${stage.id}')"
                              onclick="if(window.isDraggingPipelineCard) return; openQuickDealershipDetail('${d.id}')" 
-                             class="pipeline-card-item pipeline-card-draggable bg-white p-3.5 rounded-xl shadow-sm border border-gray-200 hover:border-brand-500 hover:shadow-md transition-all group relative">
+                             class="pipeline-card-item ${isManagerOwned ? '' : 'pipeline-card-draggable'} bg-white p-3.5 rounded-xl shadow-sm border border-gray-200 hover:border-brand-500 hover:shadow-md transition-all group relative ${isManagerOwned ? 'opacity-90' : ''}">
                             
                             <div class="flex justify-between items-start gap-2 mb-1.5">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    <i class="fa-solid fa-grip-vertical text-gray-300 group-hover:text-gray-400 text-xs flex-shrink-0 cursor-grab" title="Drag to reorder"></i>
+                                    ${isManagerOwned 
+                                        ? `<i class="fa-solid fa-lock text-amber-500 text-[10px] flex-shrink-0" title="Locked: Manager Review"></i>` 
+                                        : `<i class="fa-solid fa-grip-vertical text-gray-300 group-hover:text-gray-400 text-xs flex-shrink-0 cursor-grab" title="Drag to reorder"></i>`}
                                     <h4 class="font-bold text-sm text-gray-900 group-hover:text-brand-600 transition-colors leading-tight truncate">${d.dealershipName}</h4>
                                 </div>
                                 <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase ${heatColor} flex-shrink-0">${d.heatLevel}</span>
@@ -668,15 +671,7 @@ const scheduledActs = db.activities.filter(a => {
                                 <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${d.dealershipType === 'Franchise' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}">${d.dealershipType}</span>
                                 <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-50 text-gray-700 border border-gray-200"><i class="fa-solid fa-car text-gray-400 mr-1"></i>${d.usedCarsOnLot} cars</span>
                                 ${ownerUser ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200"><i class="fa-solid fa-user-circle mr-1"></i>${ownerUser.firstName}</span>` : ''}
-                                ${(() => {
-                                    if (!d.leadSource && !d.internalReferral && !d.externalReferral) return '';
-                                    let srcText = d.leadSource || 'Prospect Pool';
-                                    let refText = [];
-                                    if (d.internalReferral) { const refU = db.users.find(x => x.id === d.internalReferral); if (refU) refText.push(refU.firstName); }
-                                    if (d.externalReferral) refText.push(d.externalReferral);
-                                    if (refText.length > 0) srcText += ` (Ref: ${refText.join(' & ')})`;
-                                    return `<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200"><i class="fa-solid fa-bullseye mr-1"></i>${srcText}</span>`;
-                                })()}
+                                ${isManagerOwned ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">Manager Review</span>` : ''}
                             </div>
 
                             <div class="flex justify-between items-center text-[11px] pt-2 border-t border-gray-100">
@@ -1326,6 +1321,11 @@ const scheduledActs = db.activities.filter(a => {
                                             <option value="New Product Pitch (Upsell)">New Product Pitch (Upsell)</option>
                                             <option value="Keyfetch Inventory Restock">Keyfetch Inventory Restock</option>
                                             <option value="Support / Issue Resolution">Support / Issue Resolution</option>`;
+            } else if (d.status === 'Closing' || d.status === 'Handoff Pending') {
+                purposeSelect.innerHTML += `<option value="Executive Intro / Review">Executive Intro / Review</option>
+                                            <option value="Negotiation & Deal Structuring">Negotiation & Deal Structuring</option>
+                                            <option value="Final Pitch">Final Pitch</option>
+                                            <option value="Contract Review">Contract Review</option>`;
             } else {
                 purposeSelect.innerHTML += `<option value="Initial Discovery Pitch">Initial Discovery Pitch</option>
                                             <option value="Follow-up Pitch">Follow-up Pitch</option>
@@ -2377,18 +2377,26 @@ const scheduledActs = db.activities.filter(a => {
     function promptReassign(id, isSignUp = false) {
         dealershipToReassign = id;
         const d = db.dealerships.find(x => x.id === id);
+        const scoutUser = db.users.find(u => u.id === d.scoutId);
         
         document.getElementById('reassign-is-signup').value = isSignUp ? 'true' : 'false';
         document.getElementById('reassign-modal-title').innerHTML = isSignUp 
-            ? `<i class="fa-solid fa-file-signature text-purple-600 mr-2"></i> Assign to Onboarding` 
+            ? `<i class="fa-solid fa-file-signature text-purple-600 mr-2"></i> Start Sign-Up` 
             : `<i class="fa-solid fa-user-gear text-brand-600 mr-2"></i> Reassign Account`;
             
-        document.getElementById('reassign-confirm-btn').className = isSignUp
+        const btn = document.getElementById('reassign-confirm-btn');
+        btn.className = isSignUp
             ? `px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors shadow-sm`
             : `px-6 py-2 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors shadow-sm`;
+        btn.innerText = isSignUp ? "Confirm & Assign to Rep" : "Confirm Transfer";
         
         const descEl = document.getElementById('reassign-modal-desc');
-        if (isSignUp) descEl.classList.remove('hidden'); else descEl.classList.add('hidden');
+        if (isSignUp) {
+            descEl.innerHTML = `Deal closed! This account will automatically be assigned back to the original sales rep (<strong>${scoutUser ? scoutUser.firstName + ' ' + scoutUser.lastName : 'Field Rep'}</strong>) to continue the sign-up and onboarding process.`;
+            descEl.classList.remove('hidden');
+        } else {
+            descEl.classList.add('hidden');
+        }
 
         const select = document.getElementById('reassign-rep');
         if (select) {
@@ -2396,10 +2404,17 @@ const scheduledActs = db.activities.filter(a => {
             db.users.filter(u => u.role === 'rep').forEach(u => {
                 select.innerHTML += `<option value="${u.id}">${u.firstName} ${u.lastName}</option>`;
             });
-            if (isSignUp && d.scoutId) select.value = d.scoutId;
+            
+            // Hide the dropdown entirely if this is a sign-up handback
+            if (isSignUp && d.scoutId) {
+                select.value = d.scoutId;
+                select.parentElement.classList.add('hidden');
+            } else {
+                select.parentElement.classList.remove('hidden');
+            }
         }
         
-        document.getElementById('reassign-note').value = isSignUp ? 'Deal closed. Transitioning back to Field Rep for onboarding and servicing.' : '';
+        document.getElementById('reassign-note').value = isSignUp ? 'Deal successfully closed by Executive. Transitioning back to Field Rep for sign-up and onboarding.' : '';
         document.getElementById('modal-reassign').classList.remove('hidden');
     }
 
