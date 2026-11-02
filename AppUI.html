@@ -1757,7 +1757,7 @@ const scheduledActs = db.activities.filter(a => {
                             <td class="p-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <button type="button" onclick="openAuditTrail('${p.dealershipId}')" class="text-gray-500 hover:text-brand-600 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"><i class="fa-solid fa-timeline mr-1"></i> Audit</button>
-                                    <button type="button" onclick="completeHandoffMeeting('${p.id}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm"><i class="fa-solid fa-check mr-1"></i> Mark Met</button>
+                                    <button type="button" onclick="completeHandoffMeeting('${p.id}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm"><i class="fa-solid fa-handshake-simple mr-1"></i> Accept Hand-off</button>
                                 </div>
                             </td>
                         </tr>`;
