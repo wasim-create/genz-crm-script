@@ -2415,23 +2415,29 @@ const scheduledActs = db.activities.filter(a => {
         const d = db.dealerships.find(x => x.id === id);
         const scoutUser = db.users.find(u => u.id === d.scoutId);
         
-        document.getElementById('reassign-is-signup').value = isSignUp ? 'true' : 'false';
+        const isSignUpInput = document.getElementById('reassign-is-signup');
+        if (isSignUpInput) isSignUpInput.value = isSignUp ? 'true' : 'false';
+        
         document.getElementById('reassign-modal-title').innerHTML = isSignUp 
             ? `<i class="fa-solid fa-file-signature text-purple-600 mr-2"></i> Start Sign-Up` 
             : `<i class="fa-solid fa-user-gear text-brand-600 mr-2"></i> Reassign Account`;
             
         const btn = document.getElementById('reassign-confirm-btn');
-        btn.className = isSignUp
-            ? `px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors shadow-sm`
-            : `px-6 py-2 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors shadow-sm`;
-        btn.innerText = isSignUp ? "Confirm & Assign to Rep" : "Confirm Transfer";
+        if (btn) {
+            btn.className = isSignUp
+                ? `px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors shadow-sm`
+                : `px-6 py-2 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors shadow-sm`;
+            btn.innerText = isSignUp ? "Confirm & Assign to Rep" : "Confirm Transfer";
+        }
         
         const descEl = document.getElementById('reassign-modal-desc');
-        if (isSignUp) {
-            descEl.innerHTML = `Deal closed! This account will automatically be assigned back to the original sales rep (<strong>${scoutUser ? scoutUser.firstName + ' ' + scoutUser.lastName : 'Field Rep'}</strong>) to continue the sign-up and onboarding process.`;
-            descEl.classList.remove('hidden');
-        } else {
-            descEl.classList.add('hidden');
+        if (descEl) {
+            if (isSignUp) {
+                descEl.innerHTML = `Deal closed! This account will automatically be assigned back to the original sales rep (<strong>${scoutUser ? scoutUser.firstName + ' ' + scoutUser.lastName : 'Field Rep'}</strong>) to continue the sign-up and onboarding process.`;
+                descEl.classList.remove('hidden');
+            } else {
+                descEl.classList.add('hidden');
+            }
         }
 
         const select = document.getElementById('reassign-rep');
@@ -2441,7 +2447,7 @@ const scheduledActs = db.activities.filter(a => {
                 select.innerHTML += `<option value="${u.id}">${u.firstName} ${u.lastName}</option>`;
             });
             
-            // Hide the dropdown entirely if this is a sign-up handback
+            // Hide the dropdown entirely if this is a sign-up handback and we know the scout
             if (isSignUp && d.scoutId) {
                 select.value = d.scoutId;
                 select.parentElement.classList.add('hidden');
@@ -2458,7 +2464,8 @@ const scheduledActs = db.activities.filter(a => {
         if (!dealershipToReassign) return;
         const newOwnerId = document.getElementById('reassign-rep').value;
         const note = document.getElementById('reassign-note').value.trim();
-        const isSignUp = document.getElementById('reassign-is-signup').value === 'true';
+        const isSignUpInput = document.getElementById('reassign-is-signup');
+        const isSignUp = isSignUpInput ? isSignUpInput.value === 'true' : false;
         
         if (!newOwnerId || !note) return showToast("Please select a rep and provide a reason.", "error");
         
@@ -2470,18 +2477,16 @@ const scheduledActs = db.activities.filter(a => {
         
         if (isSignUp) {
             d.status = 'Onboarding';
-            const p = db.payouts.find(x => x.dealershipId === d.id && !x.meetingCompleted);
-            if (p) p.meetingCompleted = true; // Auto-trigger payout
-            showToast(`Deal Won! Handed back to ${newOwner.firstName} for onboarding.`, "success");
+            showToast(`Deal Won! Handed back to ${newOwner ? newOwner.firstName : 'Rep'} for onboarding.`, "success");
         } else {
-            showToast(`Account reassigned to ${newOwner.firstName}.`);
+            showToast(`Account reassigned to ${newOwner ? newOwner.firstName : 'Rep'}.`);
         }
 
         db.activities.push({
             id: generateId('a'), repId: currentUser.id, dealershipId: d.id, contactId: null,
             activityType: 'System Log', communicationType: 'System', status: 'completed',
             completedAt: new Date().toISOString(), 
-            notes: isSignUp ? `Deal closed and transitioned to Onboarding phase. Owner transferred to ${newOwner.firstName}. Note: ${note}` : `Owner reassigned from ${oldOwner ? oldOwner.firstName : 'None'} to ${newOwner.firstName}. Reason: ${note}`, 
+            notes: isSignUp ? `Deal closed and transitioned to Onboarding phase. Owner transferred to ${newOwner ? newOwner.firstName : 'Rep'}. Note: ${note}` : `Owner reassigned from ${oldOwner ? oldOwner.firstName : 'None'} to ${newOwner ? newOwner.firstName : 'Rep'}. Reason: ${note}`, 
             nextActionDate: null
         });
         
