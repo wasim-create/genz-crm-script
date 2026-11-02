@@ -672,6 +672,7 @@ const scheduledActs = db.activities.filter(a => {
                                 <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${d.dealershipType === 'Franchise' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}">${d.dealershipType}</span>
                                 <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-50 text-gray-700 border border-gray-200"><i class="fa-solid fa-car text-gray-400 mr-1"></i>${d.usedCarsOnLot} cars</span>
                                 ${ownerUser ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200"><i class="fa-solid fa-user-circle mr-1"></i>${ownerUser.firstName}</span>` : ''}
+                                ${d.leadSource ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200"><i class="fa-solid fa-bullseye mr-1"></i>${d.leadSource === 'Referral' ? 'Ref: ' + d.referralContact : d.leadSource}</span>` : ''}
                             </div>
 
                             <div class="flex justify-between items-center text-[11px] pt-2 border-t border-gray-100">
@@ -1031,6 +1032,14 @@ const scheduledActs = db.activities.filter(a => {
         heatBadge.className = `px-2 py-0.5 rounded text-xs font-semibold uppercase ${heatColorClass}`;
         heatBadge.innerHTML = `<i class="fa-solid ${heatIcon} mr-1"></i>${d.heatLevel}`;
 
+        const sourceBadge = document.getElementById('detail-source-badge');
+        if (d.leadSource) {
+            sourceBadge.innerHTML = `<i class="fa-solid fa-bullseye mr-1"></i>${d.leadSource === 'Referral' ? 'Ref: ' + d.referralContact : d.leadSource}`;
+            sourceBadge.classList.remove('hidden');
+        } else {
+            sourceBadge.classList.add('hidden');
+        }
+
         document.getElementById('detail-inventory').innerText = `${d.usedCarsOnLot} cars`;
         document.getElementById('detail-inventory').className = `font-semibold ${d.usedCarsOnLot < 50 ? 'text-red-600' : ''}`;
         
@@ -1115,6 +1124,14 @@ const scheduledActs = db.activities.filter(a => {
         const heatBadge = document.getElementById('qd-heat-badge');
         heatBadge.className = `px-2 py-0.5 rounded text-xs font-semibold uppercase ${heatColorClass}`;
         heatBadge.innerHTML = `<i class="fa-solid ${heatIcon} mr-1"></i>${d.heatLevel}`;
+
+        const qdSourceBadge = document.getElementById('qd-source-badge');
+        if (d.leadSource) {
+            qdSourceBadge.innerHTML = `<i class="fa-solid fa-bullseye mr-1"></i>${d.leadSource === 'Referral' ? 'Ref: ' + d.referralContact : d.leadSource}`;
+            qdSourceBadge.classList.remove('hidden');
+        } else {
+            qdSourceBadge.classList.add('hidden');
+        }
 
         document.getElementById('qd-inventory').innerText = `${d.usedCarsOnLot} cars`;
         document.getElementById('qd-inventory').className = `font-semibold ${d.usedCarsOnLot < 50 ? 'text-red-600' : ''}`;
@@ -1384,6 +1401,10 @@ const scheduledActs = db.activities.filter(a => {
     function openAddProspectModal(dealershipId = null) {
         const form = document.getElementById('form-add-prospect');
         if (form) form.reset();
+
+        document.getElementById('ap-lead-source').value = 'Manual Search';
+        document.getElementById('referral-field').classList.add('hidden');
+        document.getElementById('ap-referral-contact').value = '';
         
         const gf = document.getElementById('group-fields');
         if (gf) {
@@ -1452,6 +1473,9 @@ const scheduledActs = db.activities.filter(a => {
                 if (currentView === 'pipeline') renderPipeline();
             }
         } else {
+            const leadSource = document.getElementById('ap-lead-source').value;
+            const referralContact = leadSource === 'Referral' ? document.getElementById('ap-referral-contact').value.trim() : '';
+
             const newDeal = {
                 id: generateId('d'), dealershipName: name,
                 phone: document.getElementById('ap-phone').value.trim(),
@@ -1460,10 +1484,21 @@ const scheduledActs = db.activities.filter(a => {
                 usedCarsOnLot: parseInt(document.getElementById('ap-cars').value) || 50,
                 status: 'Uncontacted', heatLevel: 'Cold', ownerId: currentUser.id,
                 distanceFromHome: Math.floor(Math.random() * 45) + 5,
-                lastTouchpointDate: null, createdAt: new Date().toISOString(), manualOrder: 99
+                lastTouchpointDate: null, createdAt: new Date().toISOString(), manualOrder: 99,
+                leadSource: leadSource, referralContact: referralContact
             };
 
             db.dealerships.push(newDeal);
+            
+            // Generate the automatic creation audit log
+            db.activities.push({
+                id: generateId('a'), repId: currentUser.id, dealershipId: newDeal.id, contactId: null,
+                activityType: 'System Log', communicationType: 'System', status: 'completed',
+                completedAt: new Date().toISOString(), 
+                notes: `Prospect originated via ${leadSource}${referralContact ? ': ' + referralContact : ''}.`, 
+                nextActionDate: null
+            });
+
             closeModal('modal-add-prospect');
             if (currentView === 'dealerships') renderDealerships();
             if (currentView === 'pipeline') renderPipeline();
@@ -2193,4 +2228,14 @@ const scheduledActs = db.activities.filter(a => {
         closeModal('modal-drive-import');
         showToast("Meeting summary imported from Google Drive!");
     }
+
+    function toggleReferralField(selectEl) {
+        const field = document.getElementById('referral-field');
+        if (selectEl.value === 'Referral') {
+            field.classList.remove('hidden');
+        } else {
+            field.classList.add('hidden');
+        }
+    }
+    
 </script>
