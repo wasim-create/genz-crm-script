@@ -997,14 +997,6 @@ const scheduledActs = db.activities.filter(a => {
         });
     }
 
-    function claimPoolDeal(id) {
-        const d = db.dealerships.find(x => x.id === id);
-        if (d) {
-            d.ownerId = currentUser.id;
-            showToast(`Claimed "${d.dealershipName}" to your Bench!`);
-            renderPool();
-        }
-    }
 
     // --- DETAIL MODALS (FULL & QUICK) ---
     function openDealershipDetail(id) {
