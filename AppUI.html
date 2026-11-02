@@ -672,7 +672,15 @@ const scheduledActs = db.activities.filter(a => {
                                 <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${d.dealershipType === 'Franchise' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}">${d.dealershipType}</span>
                                 <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-50 text-gray-700 border border-gray-200"><i class="fa-solid fa-car text-gray-400 mr-1"></i>${d.usedCarsOnLot} cars</span>
                                 ${ownerUser ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200"><i class="fa-solid fa-user-circle mr-1"></i>${ownerUser.firstName}</span>` : ''}
-                                ${d.leadSource ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200"><i class="fa-solid fa-bullseye mr-1"></i>${d.leadSource === 'Referral' ? 'Ref: ' + d.referralContact : d.leadSource}</span>` : ''}
+                                ${(() => {
+                                    if (!d.leadSource && !d.internalReferral && !d.externalReferral) return '';
+                                    let srcText = d.leadSource || 'Prospect Pool';
+                                    let refText = [];
+                                    if (d.internalReferral) { const refU = db.users.find(x => x.id === d.internalReferral); if (refU) refText.push(refU.firstName); }
+                                    if (d.externalReferral) refText.push(d.externalReferral);
+                                    if (refText.length > 0) srcText += ` (Ref: ${refText.join(' & ')})`;
+                                    return `<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200"><i class="fa-solid fa-bullseye mr-1"></i>${srcText}</span>`;
+                                })()}
                             </div>
 
                             <div class="flex justify-between items-center text-[11px] pt-2 border-t border-gray-100">
@@ -1033,8 +1041,14 @@ const scheduledActs = db.activities.filter(a => {
         heatBadge.innerHTML = `<i class="fa-solid ${heatIcon} mr-1"></i>${d.heatLevel}`;
 
         const sourceBadge = document.getElementById('detail-source-badge');
-        if (d.leadSource) {
-            sourceBadge.innerHTML = `<i class="fa-solid fa-bullseye mr-1"></i>${d.leadSource === 'Referral' ? 'Ref: ' + d.referralContact : d.leadSource}`;
+        if (d.leadSource || d.internalReferral || d.externalReferral) {
+            let srcText = d.leadSource || 'Prospect Pool';
+            let refText = [];
+            if (d.internalReferral) { const refU = db.users.find(x => x.id === d.internalReferral); if (refU) refText.push(refU.firstName + ' ' + refU.lastName); }
+            if (d.externalReferral) refText.push(d.externalReferral);
+            if (refText.length > 0) srcText += ` (Ref: ${refText.join(' & ')})`;
+            
+            sourceBadge.innerHTML = `<i class="fa-solid fa-bullseye mr-1"></i>${srcText}`;
             sourceBadge.classList.remove('hidden');
         } else {
             sourceBadge.classList.add('hidden');
@@ -1126,11 +1140,22 @@ const scheduledActs = db.activities.filter(a => {
         heatBadge.innerHTML = `<i class="fa-solid ${heatIcon} mr-1"></i>${d.heatLevel}`;
 
         const qdSourceBadge = document.getElementById('qd-source-badge');
-        if (d.leadSource) {
-            qdSourceBadge.innerHTML = `<i class="fa-solid fa-bullseye mr-1"></i>${d.leadSource === 'Referral' ? 'Ref: ' + d.referralContact : d.leadSource}`;
-            qdSourceBadge.classList.remove('hidden');
-        } else {
-            qdSourceBadge.classList.add('hidden');
+        if (qdSourceBadge) {
+            if (d.leadSource || d.internalReferral || d.externalReferral) {
+                let srcText = d.leadSource || 'Prospect Pool';
+                let refText = [];
+                if (d.internalReferral) { 
+                    const refU = db.users.find(x => x.id === d.internalReferral); 
+                    if (refU) refText.push(refU.firstName + ' ' + refU.lastName); 
+                }
+                if (d.externalReferral) refText.push(d.externalReferral);
+                if (refText.length > 0) srcText += ` (Ref: ${refText.join(' & ')})`;
+                
+                qdSourceBadge.innerHTML = `<i class="fa-solid fa-bullseye mr-1"></i>${srcText}`;
+                qdSourceBadge.classList.remove('hidden');
+            } else {
+                qdSourceBadge.classList.add('hidden');
+            }
         }
 
         document.getElementById('qd-inventory').innerText = `${d.usedCarsOnLot} cars`;
@@ -1401,12 +1426,45 @@ const scheduledActs = db.activities.filter(a => {
     function openAddProspectModal(dealershipId = null) {
         const form = document.getElementById('form-add-prospect');
         if (form) form.reset();
-
-        document.getElementById('ap-lead-source').value = 'Manual Search';
-        document.getElementById('referral-field').classList.add('hidden');
-        document.getElementById('ap-referral-contact').value = '';
         
+        const intRefSelect = document.getElementById('ap-internal-referral');
+        if (intRefSelect) {
+            intRefSelect.innerHTML = '<option value="">-- None --</option>';
+            db.users.forEach(u => {
+                intRefSelect.innerHTML += `<option value="${u.id}">${u.firstName} ${u.lastName}</option>`;
+            });
+        }
+
         const gf = document.getElementById('group-fields');
+        if (gf) {
+            gf.classList.add('hidden');
+            gf.classList.remove('grid');
+        }
+        
+        if (dealershipId && typeof dealershipId === 'string') {
+            const d = db.dealerships.find(x => x.id === dealershipId);
+            if (d) {
+                document.getElementById('modal-prospect-title').innerHTML = '<i class="fa-solid fa-pen-to-square text-brand-600 mr-2"></i> Edit Dealership';
+                document.getElementById('ap-radar-banner')?.classList.add('hidden');
+                document.getElementById('ap-id').value = d.id;
+                document.getElementById('ap-name').value = d.dealershipName;
+                document.getElementById('ap-phone').value = d.phone || '';
+                document.getElementById('ap-address').value = d.address || '';
+                document.getElementById('ap-type').value = d.dealershipType;
+                document.getElementById('ap-cars').value = d.usedCarsOnLot || '';
+                document.getElementById('ap-internal-referral').value = d.internalReferral || '';
+                document.getElementById('ap-external-referral').value = d.externalReferral || '';
+            }
+        } else {
+            document.getElementById('modal-prospect-title').innerHTML = '<i class="fa-solid fa-building-circle-check text-brand-600 mr-2"></i> Add New Prospect';
+            document.getElementById('ap-radar-banner')?.classList.remove('hidden');
+            document.getElementById('ap-id').value = '';
+            document.getElementById('ap-internal-referral').value = '';
+            document.getElementById('ap-external-referral').value = '';
+        }
+        
+        document.getElementById('modal-add-prospect').classList.remove('hidden');
+    }
         if (gf) {
             gf.classList.add('hidden');
             gf.classList.remove('grid');
@@ -1448,6 +1506,9 @@ const scheduledActs = db.activities.filter(a => {
     function submitAddProspect() {
         const id = document.getElementById('ap-id').value;
         const name = document.getElementById('ap-name').value.trim();
+        const internalRef = document.getElementById('ap-internal-referral').value;
+        const externalRef = document.getElementById('ap-external-referral').value.trim();
+
         if (!name) return showToast("Dealership Name is required.", "error");
 
         if (id) {
@@ -1458,6 +1519,8 @@ const scheduledActs = db.activities.filter(a => {
                 db.dealerships[index].address = document.getElementById('ap-address').value.trim();
                 db.dealerships[index].dealershipType = document.getElementById('ap-type').value;
                 db.dealerships[index].usedCarsOnLot = parseInt(document.getElementById('ap-cars').value) || 0;
+                db.dealerships[index].internalReferral = internalRef;
+                db.dealerships[index].externalReferral = externalRef;
 
                 showToast("Dealership updated successfully.");
                 closeModal('modal-add-prospect');
@@ -1473,9 +1536,6 @@ const scheduledActs = db.activities.filter(a => {
                 if (currentView === 'pipeline') renderPipeline();
             }
         } else {
-            const leadSource = document.getElementById('ap-lead-source').value;
-            const referralContact = leadSource === 'Referral' ? document.getElementById('ap-referral-contact').value.trim() : '';
-
             const newDeal = {
                 id: generateId('d'), dealershipName: name,
                 phone: document.getElementById('ap-phone').value.trim(),
@@ -1485,17 +1545,16 @@ const scheduledActs = db.activities.filter(a => {
                 status: 'Uncontacted', heatLevel: 'Cold', ownerId: currentUser.id,
                 distanceFromHome: Math.floor(Math.random() * 45) + 5,
                 lastTouchpointDate: null, createdAt: new Date().toISOString(), manualOrder: 99,
-                leadSource: leadSource, referralContact: referralContact
+                leadSource: 'Manual Search', internalReferral: internalRef, externalReferral: externalRef
             };
 
             db.dealerships.push(newDeal);
             
-            // Generate the automatic creation audit log
             db.activities.push({
                 id: generateId('a'), repId: currentUser.id, dealershipId: newDeal.id, contactId: null,
                 activityType: 'System Log', communicationType: 'System', status: 'completed',
                 completedAt: new Date().toISOString(), 
-                notes: `Prospect originated via ${leadSource}${referralContact ? ': ' + referralContact : ''}.`, 
+                notes: `Prospect originated via Manual Search.`, 
                 nextActionDate: null
             });
 
@@ -2172,6 +2231,8 @@ const scheduledActs = db.activities.filter(a => {
         if (d) {
             d.ownerId = currentUser.id;
             d.status = 'Uncontacted';
+            if (!d.leadSource) d.leadSource = 'Prospect Pool';
+            
             showToast(`Claimed "${d.dealershipName}" to your Bench!`);
             
             if (currentView === 'pool') renderPool();
@@ -2182,6 +2243,18 @@ const scheduledActs = db.activities.filter(a => {
             } else {
                 openDealershipDetail(id);
             }
+        }
+    }
+
+    function claimPoolDeal(id) {
+        const d = db.dealerships.find(x => x.id === id);
+        if (d) {
+            d.ownerId = currentUser.id;
+            d.status = 'Uncontacted';
+            if (!d.leadSource) d.leadSource = 'Prospect Pool';
+            
+            showToast(`Claimed "${d.dealershipName}" to your Bench!`);
+            renderPool();
         }
     }
 
