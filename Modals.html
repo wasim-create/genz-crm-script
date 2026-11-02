@@ -576,3 +576,24 @@
         </div>
     </div>
 </div>
+
+<!-- 15. Pipeline Move Log Modal -->
+<div id="modal-pipeline-move" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[190] flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col">
+        <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+            <h3 class="font-bold text-lg" id="pipeline-move-title"><i class="fa-solid fa-truck-fast text-brand-600 mr-2"></i> Update Stage</h3>
+            <button type="button" onclick="closeModal('modal-pipeline-move')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times text-xl"></i></button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-sm text-gray-600 mb-2">Moving an account across the pipeline requires a quick log stop to explain the progression.</p>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Log Note / Action Taken *</label>
+                <textarea id="pipeline-move-note" required rows="3" placeholder="e.g. Completed pitch, awaiting signature..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none resize-none"></textarea>
+            </div>
+        </div>
+        <div class="p-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+            <button type="button" onclick="closeModal('modal-pipeline-move')" class="px-5 py-2 text-gray-600 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancel Move</button>
+            <button type="button" onclick="executePipelineMove()" class="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors shadow-sm">Save Log & Move</button>
+        </div>
+    </div>
+</div>
