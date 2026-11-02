@@ -599,7 +599,7 @@ const scheduledActs = db.activities.filter(a => {
             { id: 'Parked', label: 'Parked', badgeColor: 'bg-red-100 text-red-700', border: 'border-red-200' }
         ];
 
-        const stages = hideClients ? allStages.filter(s => s.id !== 'Onboarding' && s.id !== 'Client') : allStages;
+        const stages = hideClients ? allStages.filter(s => s.id !== 'Client') : allStages;
         const sortOption = document.getElementById('sort-pipeline')?.value || 'manual';
 
         stages.forEach(stage => {
