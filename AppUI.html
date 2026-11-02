@@ -553,7 +553,7 @@ const scheduledActs = db.activities.filter(a => {
 
         const ownerFilter = document.getElementById('filter-pipeline-owner')?.value || 'my';
         if (ownerFilter === 'my') {
-            deals = deals.filter(d => d.ownerId === currentUser.id);
+            deals = deals.filter(d => d.ownerId === currentUser.id || d.scoutId === currentUser.id);
         } else if (ownerFilter === 'team') {
             if (currentUser.role === 'manager') {
                 const teamUserIds = db.users.filter(u => u.managerId === currentUser.id || u.id === currentUser.id).map(u => u.id);
@@ -860,7 +860,8 @@ const scheduledActs = db.activities.filter(a => {
         if (!grid) return;
         grid.innerHTML = '';
         
-        let myDeals = db.dealerships.filter(d => d.ownerId === currentUser.id && d.status !== 'Client' && d.status !== 'Onboarding');
+        // Update: Now includes deals where the user is either the Owner OR the Scout
+        let myDeals = db.dealerships.filter(d => (d.ownerId === currentUser.id || d.scoutId === currentUser.id) && d.status !== 'Client' && d.status !== 'Onboarding');
         
         const searchTerm = document.getElementById('search-dealerships')?.value.toLowerCase().trim() || '';
         if (searchTerm) {
@@ -913,6 +914,9 @@ const scheduledActs = db.activities.filter(a => {
             let displayStatus = getRealStatus(d);
             let heatColor = d.heatLevel === 'Hot' ? 'bg-red-100 text-red-700' : (d.heatLevel === 'Warm' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-700');
 
+            // Visual lock check to inform rep if deal is with a manager
+            const isManagerOwned = (d.ownerId !== currentUser.id && d.scoutId === currentUser.id);
+
             const card = document.createElement('div');
             card.className = `bg-white rounded-xl shadow-sm border ${isDecaying ? 'border-red-200' : 'border-gray-200'} p-5 cursor-pointer hover:shadow-xl transition-all duration-300 relative group`;
             card.onclick = () => openDealershipDetail(d.id);
@@ -920,7 +924,10 @@ const scheduledActs = db.activities.filter(a => {
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
                     <div>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${d.dealershipType === 'Franchise' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'} uppercase mb-1 inline-block">${d.dealershipType}</span>
+                        <div class="flex items-center gap-1.5 mb-1">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${d.dealershipType === 'Franchise' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'} uppercase">${d.dealershipType}</span>
+                            ${isManagerOwned ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 uppercase"><i class="fa-solid fa-lock mr-1"></i>Manager</span>` : ''}
+                        </div>
                         <h3 class="font-bold text-gray-900 group-hover:text-brand-600 transition-colors">${d.dealershipName}</h3>
                     </div>
                     <span class="text-xs font-mono px-2 py-1 rounded border bg-gray-50">${d.distanceFromHome} mi</span>
@@ -1033,17 +1040,22 @@ const scheduledActs = db.activities.filter(a => {
         heatBadge.innerHTML = `<i class="fa-solid ${heatIcon} mr-1"></i>${d.heatLevel}`;
 
         const sourceBadge = document.getElementById('detail-source-badge');
-        if (d.leadSource || d.internalReferral || d.externalReferral) {
-            let srcText = d.leadSource || 'Prospect Pool';
-            let refText = [];
-            if (d.internalReferral) { const refU = db.users.find(x => x.id === d.internalReferral); if (refU) refText.push(refU.firstName + ' ' + refU.lastName); }
-            if (d.externalReferral) refText.push(d.externalReferral);
-            if (refText.length > 0) srcText += ` (Ref: ${refText.join(' & ')})`;
-            
-            sourceBadge.innerHTML = `<i class="fa-solid fa-bullseye mr-1"></i>${srcText}`;
-            sourceBadge.classList.remove('hidden');
-        } else {
-            sourceBadge.classList.add('hidden');
+        if (sourceBadge) {
+            if (d.leadSource || d.internalReferral || d.externalReferral) {
+                let srcText = d.leadSource || 'Prospect Pool';
+                let refText = [];
+                if (d.internalReferral) { 
+                    const refU = db.users.find(x => x.id === d.internalReferral); 
+                    if (refU) refText.push(refU.firstName + ' ' + refU.lastName); 
+                }
+                if (d.externalReferral) refText.push(d.externalReferral);
+                if (refText.length > 0) srcText += ` (Ref: ${refText.join(' & ')})`;
+                
+                sourceBadge.innerHTML = `<i class="fa-solid fa-bullseye mr-1"></i>${srcText}`;
+                sourceBadge.classList.remove('hidden');
+            } else {
+                sourceBadge.classList.add('hidden');
+            }
         }
 
         document.getElementById('detail-inventory').innerText = `${d.usedCarsOnLot} cars`;
@@ -1067,44 +1079,32 @@ const scheduledActs = db.activities.filter(a => {
         if (d.ownerId === null) {
             actionsContainer.innerHTML += `<button type="button" onclick="claimDealership('${d.id}')" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-thumbtack"></i> Claim Dealership</button>`;
         } else if (currentUser.role === 'rep') {
-            const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
-            
-            // Standard Stops & Scheduling
-            actionsContainer.innerHTML += `<button type="button" onclick="openScheduleModal()" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-regular ${pendingAct ? 'fa-calendar-check' : 'fa-calendar-plus'}"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}</button>`;
-            actionsContainer.innerHTML += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
+            if (d.ownerId !== currentUser.id) {
+                // Read-only state for reps when manager has it
+                actionsContainer.innerHTML += `<div class="bg-amber-50 text-amber-800 px-4 py-2 rounded-lg text-sm font-semibold border border-amber-200 mr-2"><i class="fa-solid fa-lock mr-1"></i> Under Manager Review</div>`;
+                actionsContainer.innerHTML += `<button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-timeline"></i> View Audit Trail</button>`;
+            } else {
+                // Active ownership state for reps
+                const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
+                actionsContainer.innerHTML += `<button type="button" onclick="openScheduleModal()" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-regular ${pendingAct ? 'fa-calendar-check' : 'fa-calendar-plus'}"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}</button>`;
+                actionsContainer.innerHTML += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
 
-            // Stage Progressions
-            if (d.status === 'In Progress' || d.status === 'Handed Off') {
-                actionsContainer.innerHTML += `<button type="button" onclick="progressDeal('${d.id}', 'Onboarding')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Sign Contract</button>`;
+                if (d.status === 'In Progress') actionsContainer.innerHTML += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
+                if (d.status === 'Onboarding') actionsContainer.innerHTML += `<button type="button" onclick="progressDeal('${d.id}', 'Client')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-check-double"></i> Finalize Onboarding</button>`;
+                if (d.status === 'Client') actionsContainer.innerHTML += `<button type="button" onclick="quickRestock('${d.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-key"></i> Quick Restock</button>`;
+                if (d.status === 'In Progress' || d.status === 'Uncontacted') actionsContainer.innerHTML += `<button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-ban"></i> Park Account</button>`;
             }
-            if (d.status === 'Onboarding') {
-                actionsContainer.innerHTML += `<button type="button" onclick="progressDeal('${d.id}', 'Client')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-check-double"></i> Finalize Onboarding</button>`;
-            }
-            if (d.status === 'Client') {
-                actionsContainer.innerHTML += `<button type="button" onclick="quickRestock('${d.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-key"></i> Quick Restock</button>`;
-            }
-
-            // Handoff & Park overrides
-            if (d.status === 'In Progress') {
-                actionsContainer.innerHTML += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
-            }
-            if (d.status === 'Handed Off') {
-                const p = db.payouts.find(x => x.dealershipId === d.id);
-                if (p && !p.meetingCompleted) {
-                    actionsContainer.innerHTML += `<button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-xmark"></i> Cancel Handoff</button>`;
-                }
-            }
-            if (d.status === 'In Progress' || d.status === 'Uncontacted') {
-                actionsContainer.innerHTML += `<button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-ban"></i> Park Account</button>`;
-            }
-
         } else if (currentUser.role === 'finance' || currentUser.role === 'manager' || currentUser.role === 'executive') {
             actionsContainer.innerHTML += `<button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-timeline"></i> View Audit Trail</button>`;
             
             if (currentUser.role === 'manager' || currentUser.role === 'executive') {
-                actionsContainer.innerHTML += `<button type="button" onclick="promptReassign('${id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-user-gear"></i> Reassign</button>`;
-                if (d.status === 'In Progress' || d.status === 'Handed Off') {
-                    actionsContainer.innerHTML += `<button type="button" onclick="progressDeal('${d.id}', 'Onboarding')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Close Deal (Sign)</button>`;
+                if (d.ownerId === currentUser.id) {
+                    actionsContainer.innerHTML += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
+                }
+                if (d.status === 'Handed Off' && d.ownerId === currentUser.id) {
+                    actionsContainer.innerHTML += `<button type="button" onclick="promptReassign('${d.id}', true)" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Start Sign-Up</button>`;
+                } else {
+                    actionsContainer.innerHTML += `<button type="button" onclick="promptReassign('${id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-user-gear"></i> Reassign</button>`;
                 }
             }
         }
@@ -1184,34 +1184,33 @@ const scheduledActs = db.activities.filter(a => {
         } else if (d.ownerId === null) {
             actionsContainer.innerHTML += `<button type="button" onclick="claimDealership('${d.id}'); closeModal('modal-quick-detail');" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-thumbtack"></i> Claim Dealership</button>`;
         } else if (currentUser.role === 'rep') {
-            const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
-            let btns = `<div class="flex items-center gap-2 flex-wrap">`;
-            
-            btns += `<button type="button" onclick="openScheduleModal()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-lg font-medium text-xs shadow-sm flex items-center gap-1.5 whitespace-nowrap"><i class="fa-regular ${pendingAct ? 'fa-calendar-check' : 'fa-calendar-plus'} text-brand-600"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}</button>`;
-            btns += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
-
-            if (d.status === 'In Progress' || d.status === 'Handed Off') btns += `<button type="button" onclick="progressDeal('${d.id}', 'Onboarding')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Sign Contract</button>`;
-            if (d.status === 'Onboarding') btns += `<button type="button" onclick="progressDeal('${d.id}', 'Client')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-check-double"></i> Finalize Onboard</button>`;
-            if (d.status === 'Client') btns += `<button type="button" onclick="quickRestock('${d.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-key"></i> Quick Restock</button>`;
-
-            if (d.status === 'In Progress') btns += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
-            if (d.status === 'Handed Off') {
-                const p = db.payouts.find(x => x.dealershipId === d.id);
-                if (p && !p.meetingCompleted) btns += `<button type="button" onclick="cancelHandoff('${d.id}')" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-3 py-2 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"><i class="fa-solid fa-xmark"></i> Cancel</button>`;
+            if (d.ownerId !== currentUser.id) {
+                // Read-only state for reps when manager has it
+                actionsContainer.innerHTML += `<div class="bg-amber-50 text-amber-800 px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-200"><i class="fa-solid fa-lock mr-1"></i> Manager Review</div>`;
+            } else {
+                const pendingAct = db.activities.find(a => a.dealershipId === d.id && a.status === 'pending');
+                let btns = `<div class="flex items-center gap-2 flex-wrap">`;
+                btns += `<button type="button" onclick="openScheduleModal()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-lg font-medium text-xs shadow-sm flex items-center gap-1.5 whitespace-nowrap"><i class="fa-regular ${pendingAct ? 'fa-calendar-check' : 'fa-calendar-plus'} text-brand-600"></i> ${pendingAct ? 'Change Schedule' : 'Schedule Visit'}</button>`;
+                btns += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
+                if (d.status === 'In Progress') btns += `<button type="button" onclick="initiateHandoff()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-handshake"></i> Handoff</button>`;
+                if (d.status === 'Onboarding') btns += `<button type="button" onclick="progressDeal('${d.id}', 'Client')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-check-double"></i> Finalize Onboard</button>`;
+                if (d.status === 'Client') btns += `<button type="button" onclick="quickRestock('${d.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-key"></i> Quick Restock</button>`;
+                if (d.status === 'In Progress' || d.status === 'Uncontacted') btns += `<button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-ban"></i> Park</button>`;
+                btns += `</div>`;
+                actionsContainer.innerHTML += btns;
             }
-            if (d.status === 'In Progress' || d.status === 'Uncontacted') btns += `<button type="button" onclick="promptParkDealership('${d.id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-ban"></i> Park</button>`;
-            
-            btns += `</div>`;
-            actionsContainer.innerHTML += btns;
-
         } else if (currentUser.role === 'manager' || currentUser.role === 'executive' || currentUser.role === 'finance') {
             let btns = `<div class="flex items-center gap-2 flex-wrap">`;
             btns += `<button type="button" onclick="openAuditTrail('${id}')" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-timeline"></i> View Audit Trail</button>`;
             
             if (currentUser.role === 'manager' || currentUser.role === 'executive') {
-                btns += `<button type="button" onclick="promptReassign('${id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-user-gear"></i> Reassign</button>`;
-                if (d.status === 'In Progress' || d.status === 'Handed Off') {
-                    btns += `<button type="button" onclick="progressDeal('${d.id}', 'Onboarding')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Close Deal</button>`;
+                if (d.ownerId === currentUser.id) {
+                    btns += `<button type="button" onclick="openSalesStopWizard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-street-view"></i> Log Stop</button>`;
+                }
+                if (d.status === 'Handed Off' && d.ownerId === currentUser.id) {
+                    btns += `<button type="button" onclick="promptReassign('${d.id}', true)" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-signature"></i> Start Sign-Up</button>`;
+                } else {
+                    btns += `<button type="button" onclick="promptReassign('${id}')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><i class="fa-solid fa-user-gear"></i> Reassign</button>`;
                 }
             }
             btns += `</div>`;
@@ -1557,7 +1556,7 @@ const scheduledActs = db.activities.filter(a => {
                 address: document.getElementById('ap-address').value.trim() || 'Address TBD',
                 dealershipType: document.getElementById('ap-type').value,
                 usedCarsOnLot: parseInt(document.getElementById('ap-cars').value) || 50,
-                status: 'Uncontacted', heatLevel: 'Cold', ownerId: currentUser.id,
+                status: 'Uncontacted', heatLevel: 'Cold', ownerId: currentUser.id, scoutId: currentUser.id,
                 distanceFromHome: Math.floor(Math.random() * 45) + 5,
                 lastTouchpointDate: null, createdAt: new Date().toISOString(), manualOrder: 99,
                 leadSource: 'Manual Search', internalReferral: internalRef, externalReferral: externalRef
@@ -1636,6 +1635,8 @@ const scheduledActs = db.activities.filter(a => {
 
         const d = db.dealerships.find(x => x.id === activeDealershipId);
         d.status = 'Handed Off';
+        d.scoutId = d.ownerId; // Retain original rep
+        d.ownerId = closerId;  // Transfer to manager
         
         db.payouts.push({
             id: generateId('p'), dealershipId: d.id, dealershipName: d.dealershipName,
@@ -2334,12 +2335,7 @@ const scheduledActs = db.activities.filter(a => {
         d.status = newStatus;
         d.lastTouchpointDate = new Date().toISOString();
 
-        // Auto-complete handoff if they jump straight to onboarding
-        if (newStatus === 'Onboarding') {
-            const p = db.payouts.find(x => x.dealershipId === id && !x.meetingCompleted);
-            if (p) p.meetingCompleted = true;
-            showToast(`Contract Signed! ${d.dealershipName} moved to Onboarding.`, "success");
-        } else if (newStatus === 'Client') {
+        if (newStatus === 'Client') {
             showToast(`${d.dealershipName} is now fully onboarded as an active Client!`, "success");
         }
 
@@ -2353,7 +2349,6 @@ const scheduledActs = db.activities.filter(a => {
         if (currentView === 'dealerships') renderDealerships();
         if (currentView === 'clients') renderClients();
         if (currentView === 'dashboard') renderDashboard();
-
         if (!document.getElementById('modal-quick-detail').classList.contains('hidden')) openQuickDealershipDetail(id);
         else if (!document.getElementById('view-dealership-detail').classList.contains('hidden')) openDealershipDetail(id);
     }
@@ -2377,16 +2372,32 @@ const scheduledActs = db.activities.filter(a => {
     }
 
     let dealershipToReassign = null;
-    function promptReassign(id) {
+    function promptReassign(id, isSignUp = false) {
         dealershipToReassign = id;
+        const d = db.dealerships.find(x => x.id === id);
+        
+        document.getElementById('reassign-is-signup').value = isSignUp ? 'true' : 'false';
+        document.getElementById('reassign-modal-title').innerHTML = isSignUp 
+            ? `<i class="fa-solid fa-file-signature text-purple-600 mr-2"></i> Assign to Onboarding` 
+            : `<i class="fa-solid fa-user-gear text-brand-600 mr-2"></i> Reassign Account`;
+            
+        document.getElementById('reassign-confirm-btn').className = isSignUp
+            ? `px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors shadow-sm`
+            : `px-6 py-2 bg-gray-900 hover:bg-black text-white font-medium rounded-lg transition-colors shadow-sm`;
+        
+        const descEl = document.getElementById('reassign-modal-desc');
+        if (isSignUp) descEl.classList.remove('hidden'); else descEl.classList.add('hidden');
+
         const select = document.getElementById('reassign-rep');
         if (select) {
             select.innerHTML = '<option value="">-- Select New Owner --</option>';
             db.users.filter(u => u.role === 'rep').forEach(u => {
                 select.innerHTML += `<option value="${u.id}">${u.firstName} ${u.lastName}</option>`;
             });
+            if (isSignUp && d.scoutId) select.value = d.scoutId;
         }
-        document.getElementById('reassign-note').value = '';
+        
+        document.getElementById('reassign-note').value = isSignUp ? 'Deal closed. Transitioning back to Field Rep for onboarding and servicing.' : '';
         document.getElementById('modal-reassign').classList.remove('hidden');
     }
 
@@ -2394,6 +2405,7 @@ const scheduledActs = db.activities.filter(a => {
         if (!dealershipToReassign) return;
         const newOwnerId = document.getElementById('reassign-rep').value;
         const note = document.getElementById('reassign-note').value.trim();
+        const isSignUp = document.getElementById('reassign-is-signup').value === 'true';
         
         if (!newOwnerId || !note) return showToast("Please select a rep and provide a reason.", "error");
         
@@ -2402,14 +2414,25 @@ const scheduledActs = db.activities.filter(a => {
         const newOwner = db.users.find(u => u.id === newOwnerId);
         
         d.ownerId = newOwnerId;
+        
+        if (isSignUp) {
+            d.status = 'Onboarding';
+            const p = db.payouts.find(x => x.dealershipId === d.id && !x.meetingCompleted);
+            if (p) p.meetingCompleted = true; // Auto-trigger payout
+            showToast(`Deal Won! Handed back to ${newOwner.firstName} for onboarding.`, "success");
+        } else {
+            showToast(`Account reassigned to ${newOwner.firstName}.`);
+        }
+
         db.activities.push({
             id: generateId('a'), repId: currentUser.id, dealershipId: d.id, contactId: null,
             activityType: 'System Log', communicationType: 'System', status: 'completed',
-            completedAt: new Date().toISOString(), notes: `Owner reassigned from ${oldOwner ? oldOwner.firstName : 'None'} to ${newOwner.firstName}. Reason: ${note}`, nextActionDate: null
+            completedAt: new Date().toISOString(), 
+            notes: isSignUp ? `Deal closed and transitioned to Onboarding phase. Owner transferred to ${newOwner.firstName}. Note: ${note}` : `Owner reassigned from ${oldOwner ? oldOwner.firstName : 'None'} to ${newOwner.firstName}. Reason: ${note}`, 
+            nextActionDate: null
         });
         
         closeModal('modal-reassign');
-        showToast(`Account reassigned to ${newOwner.firstName}.`);
         dealershipToReassign = null;
         
         if (currentView === 'pipeline') renderPipeline();
